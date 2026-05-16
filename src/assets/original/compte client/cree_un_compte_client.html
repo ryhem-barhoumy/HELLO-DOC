@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un Compte - Client</title>
+    <link rel="stylesheet" href="client.css">
+    <script src="../db.js"></script>
+</head>
+
+<body class="page-register">
+
+    <div class="form-container">
+        <h2>Créer un Compte </h2>
+        <form id="createAccountForm" action="#">
+            <div class="form-group">
+                <label for="clientName" class="required">Nom Complet</label>
+                <input type="text" id="clientName" placeholder="Votre nom complet" required>
+            </div>
+
+            <div class="form-group">
+                <label for="clientEmail" class="required">Email</label>
+                <input type="email" id="clientEmail" placeholder="Votre adresse email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="clientPhone">Téléphone</label>
+                <input type="tel" id="clientPhone" placeholder="Votre numéro de téléphone">
+            </div>
+
+            <div class="form-group optional-image-group">
+                <label for="clientImage">Image du profil <span class="optional-label">facultative</span></label>
+                <div class="image-picker">
+                    <div class="image-preview" id="clientImagePreview">👤</div>
+                    <input type="file" id="clientImage" accept="image/*">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="clientAddress" class="required">Adresse</label>
+                <input type="text" id="clientAddress" placeholder="Votre adresse" required>
+            </div>
+
+            <div class="form-group">
+                <label for="clientPassword" class="required">Mot de passe</label>
+                <input type="password" id="clientPassword" placeholder="Votre mot de passe" required>
+            </div>
+
+            <div class="form-group">
+                <label for="clientPasswordConfirm" class="required">Confirmer le mot de passe</label>
+                <input type="password" id="clientPasswordConfirm" placeholder="Confirmez votre mot de passe" required>
+            </div>
+
+            <button type="submit" class="btn">Créer un compte</button>
+        </form>
+
+        <p>Déjà un compte ? <a href="../interface.html">Se connecter</a></p>
+    </div>
+
+    <script>
+        function readClientImage(file) {
+            return new Promise(resolve => {
+                if (!file) return resolve('');
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => resolve('');
+                reader.readAsDataURL(file);
+            });
+        }
+        const clientImageInput = document.getElementById('clientImage');
+        const clientImagePreview = document.getElementById('clientImagePreview');
+        clientImageInput.addEventListener('change', function () {
+            const file = this.files && this.files[0];
+            if (!file) { clientImagePreview.textContent = '👤'; return; }
+            const reader = new FileReader();
+            reader.onload = () => { clientImagePreview.innerHTML = '<img src="' + reader.result + '" alt="Aperçu profil">'; };
+            reader.readAsDataURL(file);
+        });
+        document.getElementById('createAccountForm')
+        .addEventListener('submit', async function (event) { event.preventDefault(); 
+        const fullName = document.getElementById('clientName').value.trim();
+        const email = document.getElementById('clientEmail').value.trim(); 
+        const phone = document.getElementById('clientPhone').value.trim(); 
+        const address = document.getElementById('clientAddress').value.trim(); 
+        const password = document.getElementById('clientPassword').value; 
+        const passwordConfirm = document.getElementById('clientPasswordConfirm').value; 
+        const image = await readClientImage(document.getElementById('clientImage').files[0]);
+        if (password !== passwordConfirm) return alert('Les mots de passe ne correspondent pas.'); 
+        try { const user = RVDB.addClient({ fullName, email, phone, address, password, image }); 
+        RVDB.setCurrentUser('client', user); 
+        alert('Compte client créé avec succès. Vous allez entrer dans votre espace client.'); 
+        window.location.href = 'index.html'; } 
+        catch (e) { alert(e.message); } });
+    </script>
+
+</body>
+
+</html>

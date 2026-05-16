@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Disponibilités </title>
+  <link rel="stylesheet" href="admin.css">
+<script src="../db.js"></script>
+</head>
+<body class="page-availability">
+
+<aside class="sidebar">
+    <h2>Espace Prestataire</h2>
+    <p class="doctor-name" id="adminSideName">Admin</p>
+    <a href="admin.html">▣ Tableau de bord</a>
+    <a href="disponibilites.html" class="active">◷ Disponibilités</a>
+    <a href="patients.html">👥 Patients enregistrés</a>
+    <a href="validation.html">✓ En attente de validation</a>
+    <a href="avis-patients.html">★ Avis des patients</a>
+    <a href="parametre.html">⚙ Paramètres</a>
+    <a href="#" onclick="return logoutAdmin()">↪ Se déconnecter</a>
+  </aside>
+
+<main class="content">
+
+  <div class="page-header">
+    <h1>Gestion des disponibilités</h1>
+  </div>
+  <!--
+    <section class="stats">
+      <div class="stat-card">
+        <h3>Créneaux disponibles</h3>
+        <p id="availableCount">0</p>
+      </div>
+
+      <div class="stat-card">
+        <h3>Créneaux réservés</h3>
+        <p id="reservedCount">0</p>
+      </div>
+
+      <div class="stat-card">
+        <h3>Créneaux bloqués</h3>
+        <p id="blockedCount">0</p>
+      </div>
+    </section>
+-->
+
+  <section class="section">
+    <h2>Liste des créneaux</h2>
+
+    <div class="filter-bar">
+      <input type="date" id="filterDate" onclick="openDatePicker()">
+    </div>
+
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date</th>
+          <th>Début</th>
+          <th>Fin</th>
+          <th>Statut</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+
+      <tbody id="slotsList"></tbody>
+    </table>
+    </div>
+
+  </section>
+
+
+  <section class="section absence-section">
+    <div class="section-head-row">
+      <div>
+        <h2>Absences et congés</h2>
+        <p class="subtitle">Déclarez une période d’indisponibilité. Les créneaux seront bloqués et les patients concernés recevront une notification.</p>
+      </div>
+    </div>
+
+    <form id="absenceForm" class="absence-form">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="required">Date début</label>
+          <input type="date" id="absenceStart" required>
+        </div>
+        <div class="form-group">
+          <label class="required">Date fin</label>
+          <input type="date" id="absenceEnd" required>
+        </div>
+        <div class="form-group">
+          <label class="required">Motif</label>
+          <select id="absenceReason" required>
+            <option value="Congé">Congé</option>
+            <option value="Formation">Formation</option>
+            <option value="Urgence">Urgence</option>
+            <option value="Indisponibilité">Indisponibilité</option>
+          </select>
+        </div>
+        <div class="form-group full">
+          <label>Commentaire optionnel</label>
+          <textarea id="absenceComment" rows="3" placeholder="Exemple : cabinet fermé, formation médicale, urgence personnelle..."></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-success" type="submit">Ajouter l’absence</button>
+      </div>
+    </form>
+
+    <div class="absence-list" id="absenceList"></div>
+  </section>
+
+</main>
+
+<script>
+
+const currentUser = RVDB.getCurrentUser();
+
+if (!currentUser || currentUser.role !== 'admin') {
+  alert('Veuillez vous connecter comme admin.');
+  window.location.href = '../interface.html';
+}
+
+function getAdminProfile(){
+  const db = RVDB.loadDb();
+  return db.admins.find(a => a.id === currentUser.id) || currentUser;
+}
+function getWorkingDays(){
+  const admin = getAdminProfile();
+  return (admin.workingDays && admin.workingDays.length ? admin.workingDays : ['1','2','3','4','5','6']).map(String);
+}
+function getDayNumber(dateStr){
+  return String(new Date(dateStr + 'T00:00:00').getDay());
+}
+function isWorkingDay(dateStr){
+  return getWorkingDays().includes(getDayNumber(dateStr));
+}
+
+function eachDate(start, end){
+  const out = [];
+  let d = new Date(start + 'T00:00:00');
+  const last = new Date(end + 'T00:00:00');
+  while(d <= last){ out.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return out;
+}
+function getAbsences(){
+  const db = RVDB.loadDb();
+  return (db.absences || []).filter(a => a.adminId === currentUser.id && a.status !== 'Supprimée');
+}
+function getAbsenceForDate(dateStr){
+  return getAbsences().find(a => a.startDate <= dateStr && dateStr <= a.endDate);
+}
+function notifyClient(r, title, message, extra){
+  if(!r || !r.clientId || r.clientId === 'admin_direct') return;
+  const db = RVDB.loadDb();
+  db.notifications = db.notifications || [];
+  db.notifications.unshift({
+    id:'notif_' + Date.now() + '_' + Math.random().toString(16).slice(2),
+    role:'client', recipientRole:'client', userId:r.clientId, recipientId:r.clientId,
+    title, message, read:false, createdAt:new Date().toISOString(), appointmentId:r.id,
+    type:(extra && extra.type) || 'absence', reason:(extra && extra.reason) || '', comment:(extra && extra.comment) || ''
+  });
+  RVDB.saveDb(db);
+}
+function applyAbsenceToPlanning(absence){
+  const db = RVDB.loadDb();
+  db.absences = db.absences || [];
+  db.notifications = db.notifications || [];
+  const dates = eachDate(absence.startDate, absence.endDate);
+  let impacted = 0;
+  db.slots.forEach(slot => {
+    if(slot.adminId === currentUser.id && dates.includes(slot.date) && slot.status !== 'Réservé'){
+      slot.status = 'Bloqué';
+      slot.absenceId = absence.id;
+      slot.blockedByAbsence = true;
+    }
+  });
+  db.appointments.forEach(r => {
+    if(r.adminId === currentUser.id && dates.includes(r.date) && (r.status === 'Confirmé' || r.status === 'En attente')){
+      r.status = 'À reprogrammer';
+      r.absenceId = absence.id;
+      r.absenceReason = absence.reason;
+      impacted++;
+      if(r.clientId && r.clientId !== 'admin_direct'){
+        db.notifications.unshift({
+          id:'notif_' + Date.now() + '_' + Math.random().toString(16).slice(2),
+          role:'client', recipientRole:'client', userId:r.clientId, recipientId:r.clientId,
+          title:'Rendez-vous à reprogrammer',
+          message:'Votre rendez-vous du ' + r.date + ' à ' + r.time + ' doit être reprogrammé suite à une absence du prestataire.',
+          read:false, createdAt:new Date().toISOString(), appointmentId:r.id,
+          type:'absence', reason:absence.reason, comment:absence.comment || ''
+        });
+      }
+    }
+  });
+  RVDB.saveDb(db);
+  return impacted;
+}
+function blockSlotsForAbsence(dateStr){
+  const absence = getAbsenceForDate(dateStr);
+  if(!absence) return null;
+  const db = RVDB.loadDb();
+  let changed = false;
+  db.slots.forEach(slot => {
+    if(slot.adminId === currentUser.id && slot.date === dateStr && slot.status !== 'Réservé'){
+      slot.status = 'Bloqué';
+      slot.absenceId = absence.id;
+      slot.blockedByAbsence = true;
+      changed = true;
+    }
+  });
+  if(changed) RVDB.saveDb(db);
+  return absence;
+}
+function renderAbsences(){
+  const absences = getAbsences().sort((a,b)=>(b.startDate+a.reason).localeCompare(a.startDate+a.reason));
+  const box = document.getElementById('absenceList');
+  if(!absences.length){
+    box.innerHTML = '<div class="empty">Aucune absence déclarée pour le moment.</div>';
+    return;
+  }
+  box.innerHTML = absences.map(a => '<div class="absence-card"><div><strong>' + a.startDate + (a.endDate !== a.startDate ? ' → ' + a.endDate : '') + '</strong><span>' + a.reason + (a.comment ? ' · ' + a.comment : '') + '</span></div><button class="btn btn-outline" onclick="deleteAbsence(\'' + a.id + '\')">Retirer</button></div>').join('');
+}
+function deleteAbsence(id){
+  if(!confirm('Retirer cette absence ? Les anciens rendez-vous à reprogrammer resteront visibles.')) return;
+  const db = RVDB.loadDb();
+  db.absences = db.absences || [];
+  const absence = db.absences.find(a => a.id === id);
+  if(absence) absence.status = 'Supprimée';
+  db.slots.forEach(slot => {
+    if(slot.adminId === currentUser.id && slot.absenceId === id && slot.blockedByAbsence){
+      slot.status = 'Disponible';
+      delete slot.absenceId;
+      delete slot.blockedByAbsence;
+    }
+  });
+  RVDB.saveDb(db);
+  renderAbsences();
+  loadSlots();
+}
+
+function blockSlotsForNonWorkingDay(dateStr){
+  const db = RVDB.loadDb();
+  let changed = false;
+  db.slots.forEach(slot => {
+    if (slot.adminId === currentUser.id && slot.date === dateStr && !isWorkingDay(dateStr) && slot.status !== 'Réservé') {
+      slot.status = 'Bloqué';
+      changed = true;
+    }
+  });
+  if (changed) RVDB.saveDb(db);
+}
+
+
+document.getElementById('adminSideName').textContent =
+  currentUser.serviceTitle || currentUser.fullName;
+
+/* -------- STATUS CLASS -------- */
+function getStatusClass(status){
+  if(status==='Disponible') return 'available';
+  if(status==='Réservé') return 'reserved';
+  return 'blocked';
+}
+
+/* -------- PAST SLOT CHECK -------- */
+function isPastSlot(slot){
+  if(!slot) return false;
+  const now = new Date();
+  const start = new Date(slot.date + 'T' + slot.start);
+  return now >= start;
+}
+
+/* -------- LOAD SLOTS -------- */
+function loadSlots(){
+
+  const filter = document.getElementById('filterDate').value || RVDB.today();
+
+  const activeAbsence = getAbsenceForDate(filter);
+
+  if (activeAbsence) {
+    blockSlotsForAbsence(filter);
+  }
+  else if (!isWorkingDay(filter)) {
+    blockSlotsForNonWorkingDay(filter);
+  }
+  else if (RVDB.generateSlotsForDate) {
+    RVDB.generateSlotsForDate(currentUser.id, filter);
+  }
+
+  const db = RVDB.loadDb();
+
+  let rows = db.slots
+    .filter(x =>
+      x.adminId === currentUser.id &&
+      (!filter || x.date === filter)
+    );
+
+  /* 🔥 auto update past */
+  rows.forEach(s=>{
+    if(isPastSlot(s) && s.status !== 'Bloqué'){
+      s.status = 'Bloqué';
+    }
+  });
+
+  rows.sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start));
+
+  if (activeAbsence && rows.length === 0) {
+    document.getElementById('slotsList').innerHTML = `
+      <tr>
+        <td>1</td>
+        <td>${filter}</td>
+        <td>—</td>
+        <td>—</td>
+        <td data-status="Bloqué"><span class="status blocked">Bloqué</span></td>
+        <td><span class="muted-action">Absence : ${activeAbsence.reason}</span></td>
+      </tr>
+    `;
+  } else if (!isWorkingDay(filter) && rows.length === 0) {
+    document.getElementById('slotsList').innerHTML = `
+      <tr>
+        <td>1</td>
+        <td>${filter}</td>
+        <td>—</td>
+        <td>—</td>
+        <td data-status="Bloqué"><span class="status blocked">Bloqué</span></td>
+        <td><span style="color:#999">Jour non travaillé</span></td>
+      </tr>
+    `;
+  } else {
+    document.getElementById('slotsList').innerHTML = rows.map((slot,i)=>`
+      <tr>
+        <td>${i+1}</td>
+        <td>${slot.date}</td>
+        <td>${slot.start}</td>
+        <td>${slot.end}</td>
+        <td data-status="${slot.status}">
+          <span class="status ${getStatusClass(slot.status)}">${slot.status}</span>
+        </td>
+        <td>
+          <div class="actions" data-id="${slot.id}"></div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  RVDB.saveDb(db);
+  renderActions();
+}
+
+/* -------- ACTIONS -------- */
+function renderActions(){
+
+  document.querySelectorAll('#slotsList .actions').forEach(cell=>{
+
+    const id = cell.dataset.id;
+    const tr = cell.closest('tr');
+    const status = tr.querySelector('[data-status]').dataset.status;
+
+    const db = RVDB.loadDb();
+    const slot = db.slots.find(s=>s.id===id);
+
+    /* 🔥 إذا فات الوقت -> no actions */
+    if(isPastSlot(slot)){
+      cell.innerHTML = '<span style="color:#999">—</span>';
+      return;
+    }
+
+    if(status==='Disponible'){
+      cell.innerHTML = `
+        <button class="btn btn-warning" onclick="editSlot('${id}')">Modifier</button>
+        <button class="btn btn-danger" onclick="setBlocked('${id}')">Bloquer</button>
+      `;
+    }
+
+    else if(status==='Réservé'){
+      cell.innerHTML = '<span class="empty-action">—</span>'; // créneau réservé : aucune action
+    }
+
+    else {
+      cell.innerHTML = `
+        <button class="btn btn-success" onclick="setAvailable('${id}')">Rendre libre</button>
+      `;
+    }
+
+  });
+}
+
+/* -------- ACTIONS LOGIC -------- */
+function editSlot(id){
+
+  const db = RVDB.loadDb();
+  const slot = db.slots.find(x=>x.id===id);
+
+  if(!slot) return;
+
+  if(isPastSlot(slot)){
+    alert('Impossible de modifier un créneau passé');
+    return;
+  }
+
+  const start = prompt('Nouvelle heure début', slot.start);
+  const end = prompt('Nouvelle heure fin', slot.end);
+
+  if(start && end && end > start){
+    RVDB.updateSlot(id,{start,end});
+    loadSlots();
+  }
+}
+
+function setAvailable(id){
+  RVDB.updateSlot(id,{status:'Disponible'});
+  loadSlots();
+}
+
+function setBlocked(id){
+  RVDB.updateSlot(id,{status:'Bloqué'});
+  loadSlots();
+}
+
+
+function openDatePicker(){
+  const input = document.getElementById('filterDate');
+  if(input.showPicker) input.showPicker();
+  else input.focus();
+}
+function applyFilters(){ openDatePicker(); }
+
+/* -------- LOGOUT -------- */
+function logoutAdmin(){
+  if(confirm('Êtes-vous sûr de vouloir vous déconnecter ?')){
+    RVDB.logout();
+    window.location.href='../interface.html';
+  }
+  return false;
+}
+
+/* -------- INIT -------- */
+document.getElementById('filterDate').value = RVDB.today();
+document.getElementById('filterDate').addEventListener('change', loadSlots);
+
+document.getElementById('absenceStart').min = RVDB.today();
+document.getElementById('absenceEnd').min = RVDB.today();
+document.getElementById('absenceStart').addEventListener('change', function(){
+  document.getElementById('absenceEnd').min = this.value || RVDB.today();
+  if(document.getElementById('absenceEnd').value && document.getElementById('absenceEnd').value < this.value) document.getElementById('absenceEnd').value = this.value;
+});
+document.getElementById('absenceForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const startDate = document.getElementById('absenceStart').value;
+  const endDate = document.getElementById('absenceEnd').value;
+  const reason = document.getElementById('absenceReason').value;
+  const comment = document.getElementById('absenceComment').value.trim();
+  if(!startDate || !endDate) return alert('Choisissez la date début et la date fin.');
+  if(endDate < startDate) return alert('La date fin doit être supérieure ou égale à la date début.');
+  const db = RVDB.loadDb();
+  db.absences = db.absences || [];
+  const absence = {id:'abs_' + Date.now(), adminId:currentUser.id, startDate, endDate, reason, comment, status:'Active', createdAt:new Date().toISOString()};
+  db.absences.push(absence);
+  RVDB.saveDb(db);
+  const impacted = applyAbsenceToPlanning(absence);
+  alert('Absence ajoutée. ' + impacted + ' rendez-vous marqué(s) à reprogrammer.');
+  this.reset();
+  renderAbsences();
+  loadSlots();
+});
+renderAbsences();
+
+loadSlots();
+
+</script>
+
+</body>
+</html>

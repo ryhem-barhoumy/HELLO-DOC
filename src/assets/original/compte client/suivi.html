@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Suivi</title>
+        <link rel="stylesheet" href="client.css">
+        <script src="../db.js"></script>
+        <script src="client-common.js"></script>
+</head>
+        <body class="page-suivi">
+            <div class="box">
+                <h1>Suivi des rendez-vous</h1>
+                <div id="list"></div>
+            </div>
+            <script>
+            const u=RVDB.getCurrentUser(); 
+            if(!u||u.role!=='client'){alert('Veuillez vous connecter comme client.'); 
+            location.href='../interface.html';} 
+            function cls(s){return s==='Confirmé'?'confirmed':'pending';}
+            function canCancel(r){const start=new Date(r.date+'T'+r.time); return (start.getTime()-Date.now())>=60*60*1000;}
+            function render(){const db=RVDB.loadDb(); 
+            const l=db.appointments.filter(r=>u&&r.clientId===u.id&&(r.status==='En attente'||r.status==='Confirmé')).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)); const box=document.getElementById('list'); box.innerHTML=l.length?l.map(r=>`<div class="item"><div class="head"><div><b>${r.service}</b><br><span class="muted">Date : ${r.date} à ${r.time}</span></div><span class="status ${cls(r.status)}">${r.status}</span></div><div class="actions">${canCancel(r)?`<button class="btn btn-cancel" onclick="cancelRdv('${r.id}')">Annuler</button>`:'<span class="muted">Annulation indisponible (-1h)</span>'}</div></div>`).join(''):'Aucun rendez-vous en attente ou confirmé pour le moment.';} function cancelRdv(id){const db=RVDB.loadDb(); const r=db.appointments.find(x=>x.id===id); if(!r)return; if(!canCancel(r)){alert('Annulation impossible : il reste moins d’une heure avant le début du rendez-vous.');return;} if(confirm('Voulez-vous annuler ce rendez-vous ?')){RVDB.cancelAppointment(id); render();}} render();</script></body></html>

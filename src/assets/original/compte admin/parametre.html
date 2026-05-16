@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Espace compte médecin</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="../db.js"></script>
+</head>
+<body class="page-account">
+    <aside class="sidebar">
+    <h2>Espace Prestataire</h2>
+    <p class="doctor-name" id="adminSideName">Admin</p>
+    <a href="admin.html">▣ Tableau de bord</a>
+    <a href="disponibilites.html">◷ Disponibilités</a>
+    <a href="patients.html">👥 Patients enregistrés</a>
+    <a href="validation.html">✓ En attente de validation</a>
+    <a href="avis-patients.html">★ Avis des patients</a>
+    <a href="parametre.html" class="active">⚙ Paramètres</a>
+    <a href="#" onclick="return logoutAdmin()">↪ Se déconnecter</a>
+  </aside>
+  <main class="content">
+    <div class="page-header"><h1>Espace compte</h1></div>
+    <section class="section"><h2>Informations du compte médecin</h2>
+      <form id="updateInfoForm"><div class="profile-settings-row full">
+        <div class="profile-image-preview" id="adminImagePreview">🩺</div>
+        <div>
+          <label for="image">Image actuelle / nouvelle image</label>
+          <input type="file" id="image" accept="image/*">
+          <p class="hint">L'image enregistrée s'affiche automatiquement. Choisissez une nouvelle image seulement si vous voulez la remplacer.</p>
+        </div>
+      </div><div class="form-grid">
+        <div class="form-group"><label class="required">Nom Complet</label><input type="text" id="fullName" required></div>
+        <div class="form-group"><label class="required">Email</label><input type="email" id="email" required></div>
+        <div class="form-group"><label class="required">Téléphone</label><input type="tel" id="phone" required></div>
+        
+        <div class="form-group"><label class="required">Spécialité médicale</label><select id="specialty" required><option value="">Choisir une spécialité</option><option value="Médecin généraliste">Médecin généraliste</option><option value="Dentiste / Orthodontiste">Dentiste / Orthodontiste</option><option value="Ophtalmologue">Ophtalmologue</option><option value="Gynécologue">Gynécologue</option><option value="Pédiatre">Pédiatre</option><option value="ORL">ORL</option><option value="Dermatologue">Dermatologue</option><option value="Neurologue">Neurologue</option><option value="Cardiologue">Cardiologue</option></select></div>
+        <div class="form-group"><label class="required">Nom affiché dans Nos prestations</label><input type="text" id="serviceTitle" required></div>
+        <div class="form-group"><label class="required">Durée fixe du rendez-vous (minutes)</label><input type="number" id="durationMinutes" min="5" step="5" required></div>
+        <div class="form-group"><label class="required">Heure de début de travail</label><input type="time" id="workStart" required></div>
+        <div class="form-group"><label class="required">Heure de fin de travail</label><input type="time" id="workEnd" required></div>
+        <div class="form-group full"><label class="required">Jours de travail</label><div class="days-grid"><label class="day-check"><input type="checkbox" name="workingDays" value="1"> Lundi</label><label class="day-check"><input type="checkbox" name="workingDays" value="2"> Mardi</label><label class="day-check"><input type="checkbox" name="workingDays" value="3"> Mercredi</label><label class="day-check"><input type="checkbox" name="workingDays" value="4"> Jeudi</label><label class="day-check"><input type="checkbox" name="workingDays" value="5"> Vendredi</label><label class="day-check"><input type="checkbox" name="workingDays" value="6"> Samedi</label><label class="day-check"><input type="checkbox" name="workingDays" value="0"> Dimanche</label></div></div>
+        <div class="form-group"><label class="required">Pause entre les rendez-vous (minutes)</label><input type="number" id="pauseMinutes" min="0" step="5" required></div>
+        <div class="form-group"><label class="required">Lieu</label><input type="text" id="location" placeholder="Adresse du cabinet / centre" required></div>
+        <div class="form-group full"><label class="required">Services et tarifs</label><div class="services-editor"><div class="service-line"><div><label>Service</label><input type="text" id="serviceName" placeholder="Ex: Consultation"></div><div><label>Tarif</label><input type="number" id="servicePrice" placeholder="Ex: 50" min="0" step="1" inputmode="numeric"></div><button type="button" class="btn btn-success" onclick="addMedicalService()">Ajouter</button></div><p class="hint">Ajoutez les services que le client peut choisir pendant la réservation.</p><ul class="service-list" id="servicesList"></ul></div></div>
+        <div class="form-group"><label class="required">Mot de passe actuel</label><input type="password" id="infoPassword" required placeholder="Entrez votre mot de passe actuel"></div>
+        <div class="form-group full"><label class="required">Description de la prestation</label><textarea id="description" required></textarea></div>
+      </div><div class="actions"><button class="btn btn-primary" type="submit">Confirmer les modifications</button></div></form>
+    </section>
+    <section class="section"><h2>Changer le mot de passe</h2><form id="changePasswordForm"><div class="form-grid"><div class="form-group"><label class="required">Mot de passe actuel</label><input type="password" id="currentPassword" required></div><div class="form-group"><label class="required">Nouveau mot de passe</label><input type="password" id="newPassword" required></div><div class="form-group"><label class="required">Confirmer le nouveau mot de passe</label><input type="password" id="confirmPassword" required></div></div><div class="actions"><button class="btn btn-success" type="submit">Changer le mot de passe</button></div></form></section>
+    <section class="section danger"><h2>Supprimer le compte</h2><p class="note">Cette action supprimera ce compte médecin, sa prestation, ses créneaux et ses réservations.</p><form id="deleteAccountForm"><div class="form-grid"><div class="form-group"><label class="required">Mot de passe actuel</label><input type="password" id="deletePassword" required placeholder="Confirmez avec votre mot de passe"></div></div><div class="actions"><button class="btn btn-danger" type="submit">Supprimer définitivement mon compte</button></div></form></section>
+  </main>
+<script>
+const currentUser = RVDB.getCurrentUser();
+if(!currentUser || currentUser.role !== 'admin'){ window.location.href = '../interface.html'; }
+let medicalServices = [];
+function parseMedicalServiceInput(text){ return String(text || '').replace(/\n+/g,' / ').split(/\s*[\/;]\s*/).map(part => { const m = part.trim().match(/^(.+?)\s*[:：]\s*(.+)$/); if(!m) return null; const normalizedPrice = normalizePrice(m[2].trim()); return normalizedPrice ? {name:m[1].trim(), price:normalizedPrice} : null; }).filter(Boolean); }
+function normalizePrice(value){ const raw = String(value || '').trim().replace(/\s*DT$/i,'').replace(',','.'); if(!raw || !/^\d+(\.\d+)?$/.test(raw)) return null; const amount = Number(raw); if(!Number.isFinite(amount) || amount < 0) return null; return (Number.isInteger(amount) ? String(amount) : String(amount).replace(/\.0+$/,'')) + ' DT'; }
+function getAdminLocation(a){ const values = [a && a.location, a && a.serviceLocation, a && a.address].map(v => String(v || '').trim()).filter(v => v && v.toLowerCase() !== 'non précisé' && v.toLowerCase() !== 'non precise'); return values[0] || ''; }
+const locationInput = document.getElementById('location');
+function admin(){ return RVDB.loadDb().admins.find(a => a.id === currentUser.id); }
+function readImage(file){ return new Promise(resolve => { if(!file) return resolve(null); const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = () => resolve(null); r.readAsDataURL(file); }); }
+function showAdminImage(src){ adminImagePreview.innerHTML = src ? '<img src="' + src + '" alt="Image prestation">' : '🩺'; }
+function renderMedicalServices(){ servicesList.innerHTML = medicalServices.map((s,index)=>`<li><span>${s.name} — ${s.price}</span><button type="button" class="btn-danger" onclick="removeMedicalService(${index})">Supprimer</button></li>`).join(''); }
+function addMedicalService(){ const name = serviceName.value.trim(); const price = servicePrice.value.trim(); const parsedFromName = parseMedicalServiceInput(name); if(parsedFromName.length && !price){ medicalServices.push(...parsedFromName); } else { const normalizedPrice = normalizePrice(price); if(!name || !normalizedPrice){ alert('Ajoutez le nom du service et un tarif numérique valide. Exemple : 50'); return; } medicalServices.push({name,price:normalizedPrice}); } serviceName.value=''; servicePrice.value=''; renderMedicalServices(); }
+function removeMedicalService(index){ medicalServices.splice(index,1); renderMedicalServices(); }
+image.addEventListener('change', function(){ const file = this.files && this.files[0]; if(!file){ const a = admin(); showAdminImage((a && (a.image || a.profileImage)) || ''); return; } const r = new FileReader(); r.onload = () => showAdminImage(r.result); r.readAsDataURL(file); });
+function normalizeServices(a){ if(Array.isArray(a.services) && a.services.length) return a.services; if(a.price) return [{name:'Consultation',price:a.price}]; return []; }
+function fill(){ const a = admin(); if(!a) return; adminSideName.textContent = a.serviceTitle || a.fullName || 'Médecin'; showAdminImage(a.image || a.profileImage || ''); image.value=''; fullName.value = a.ownerName || a.fullName || ''; email.value = a.email || ''; phone.value = a.phone || ''; specialty.value = a.specialty || ''; serviceTitle.value = a.serviceTitle || a.fullName || ''; durationMinutes.value = a.durationMinutes || 30; pauseMinutes.value = a.pauseMinutes || 0; workStart.value = a.workStart || '08:00'; workEnd.value = a.workEnd || '17:00'; const days = (a.workingDays && a.workingDays.length ? a.workingDays : ['1','2','3','4','5','6']).map(String); document.querySelectorAll('input[name="workingDays"]').forEach(cb => cb.checked = days.includes(cb.value)); locationInput.value = getAdminLocation(a); medicalServices = normalizeServices(a); renderMedicalServices(); description.value = a.description || ''; infoPassword.value=''; currentPassword.value=''; newPassword.value=''; confirmPassword.value=''; }
+fill();
+updateInfoForm.onsubmit = async e => { e.preventDefault(); if(workEnd.value <= workStart.value) return alert('L’heure de fin doit être supérieure à l’heure de début.'); const workingDays = Array.from(document.querySelectorAll('input[name="workingDays"]:checked')).map(input => input.value); if(!workingDays.length) return alert('Choisissez au moins un jour de travail.'); if(!medicalServices.length) return alert('Ajoutez au moins un service avec son tarif.'); const img = await readImage(image.files[0]); const a = admin(); const loc = (locationInput.value.trim() || getAdminLocation(a)).trim(); locationInput.value = loc; const patch = { fullName:serviceTitle.value.trim(), ownerName:fullName.value.trim(), category:'Médecin', specialty:specialty.value, email:email.value.trim(), phone:phone.value.trim(), serviceType:'Consultation médicale', serviceTitle:serviceTitle.value.trim(), duration:durationMinutes.value + ' minutes', durationMinutes:durationMinutes.value, workStart:workStart.value, workEnd:workEnd.value, workingDays, pauseMinutes:pauseMinutes.value, location:loc, serviceLocation:loc, address:loc, services:medicalServices, price:medicalServices.map(s => s.name + ': ' + s.price).join(' / '), description:description.value.trim() }; if(img){ patch.image = img; patch.profileImage = img; } try{ RVDB.updateUser('admin', currentUser.id, patch, infoPassword.value); alert('Espace compte mis à jour.'); fill(); }catch(err){ alert(err.message); } };
+changePasswordForm.onsubmit = e => { e.preventDefault(); if(newPassword.value !== confirmPassword.value) return alert('Les mots de passe ne correspondent pas.'); try{ RVDB.changePassword('admin', currentUser.id, currentPassword.value, newPassword.value); alert('Mot de passe changé avec succès.'); changePasswordForm.reset(); }catch(err){ alert(err.message); } };
+deleteAccountForm.onsubmit = e => { e.preventDefault(); if(!confirm('Supprimer définitivement ce compte médecin ?')) return; try{ RVDB.deleteAccount('admin', currentUser.id, deletePassword.value); window.location.href='../interface.html'; }catch(err){ alert(err.message); } };
+function logoutAdmin(){ if(confirm('Êtes-vous sûr de vouloir vous déconnecter ?')){ RVDB.logout(); window.location.href='../interface.html'; } return false; }
+</script>
+</body>
+</html>

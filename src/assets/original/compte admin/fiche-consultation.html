@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fiche de consultation</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="../db.js"></script>
+</head>
+<body class="page-patients page-patient-dossier page-fiche-consultation">
+  <aside class="sidebar">
+    <h2>Espace Prestataire</h2>
+    <p class="doctor-name" id="adminSideName">Admin</p>
+    <a href="admin.html">▣ Tableau de bord</a>
+    <a href="disponibilites.html">◷ Disponibilités</a>
+    <a href="patients.html" class="active">👥 Patients enregistrés</a>
+    <a href="validation.html">✓ En attente de validation</a>
+    <a href="avis-patients.html">★ Avis des patients</a>
+    <a href="parametre.html">⚙ Paramètres</a>
+    <a href="#" onclick="return logoutAdmin()">↪ Se déconnecter</a>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <h1>Fiche de consultation</h1>
+      <p id="ficheSubtitle">Note interne visible uniquement par le prestataire.</p>
+    </div>
+
+    <section class="section fiche-page-card">
+      <div class="history-toolbar">
+        <button class="btn btn-outline" id="backBtn">← Retour au dossier patient</button>
+      </div>
+      <div id="rdvSummary" class="rdv-summary-card"></div>
+
+      <form id="ficheForm" class="fiche-form-page">
+        <label for="noteResume">Résumé de la consultation</label>
+        <textarea id="noteResume" rows="4" placeholder="Exemple : consultation de contrôle, évolution positive..."></textarea>
+
+        <label for="noteObservation">Observation</label>
+        <textarea id="noteObservation" rows="4" placeholder="Symptômes, remarques, état général..."></textarea>
+
+        <label for="noteTreatment">Traitement / recommandation</label>
+        <textarea id="noteTreatment" rows="4" placeholder="Recommandations, traitement conseillé, suivi..."></textarea>
+
+        <label for="noteNextCheck">Date du prochain contrôle</label>
+        <input type="date" id="noteNextCheck">
+        <small class="field-help">Le patient recevra une notification pour choisir un créneau disponible à cette date.</small>
+
+        <label for="notePrivate">Note privée</label>
+        <textarea id="notePrivate" rows="4" placeholder="Note confidentielle pour le prestataire..."></textarea>
+
+        <div class="form-actions-sticky">
+          <button type="button" class="btn btn-outline" id="cancelBtn">Annuler</button>
+          <button type="submit" class="btn btn-success">Enregistrer la fiche</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+<script>
+const currentUser = RVDB.getCurrentUser();
+if (!currentUser || currentUser.role !== 'admin') { alert('Veuillez vous connecter comme admin.'); window.location.href = '../interface.html'; }
+document.getElementById('adminSideName').textContent = currentUser.serviceTitle || currentUser.fullName || 'Admin';
+const params = new URLSearchParams(location.search);
+const rdvId = params.get('rdv') || '';
+const patientKey = params.get('patient') || '';
+function safe(v){ return String(v || 'Non renseigné').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function back(){ window.location.href = 'patient-rendezvous.html?patient=' + encodeURIComponent(patientKey); }
+document.getElementById('backBtn').onclick = back;
+document.getElementById('cancelBtn').onclick = back;
+function addDays(dateStr, days){
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0,10);
+}
+function load(){
+  const db = RVDB.loadDb();
+  const r = db.appointments.find(x => x.id === rdvId && x.adminId === currentUser.id);
+  if(!r){ alert('Rendez-vous introuvable.'); back(); return; }
+  document.getElementById('ficheSubtitle').textContent = (r.patient || 'Patient') + ' — ' + r.date + ' à ' + r.time;
+  document.getElementById('rdvSummary').innerHTML = `<strong>${safe(r.patient)}</strong><span>${safe(r.service || 'Consultation')}</span><small>${safe(r.date)} à ${safe(r.time)}</small>`;
+  const minControl = addDays(r.date, 1);
+  document.getElementById('noteNextCheck').min = minControl;
+  const note = r.consultationNote || {};
+  document.getElementById('noteResume').value = note.resume || '';
+  document.getElementById('noteObservation').value = note.observation || '';
+  document.getElementById('noteTreatment').value = note.treatment || '';
+  document.getElementById('noteNextCheck').value = note.nextCheck || '';
+  document.getElementById('notePrivate').value = note.privateNote || '';
+}
+document.getElementById('ficheForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  const db = RVDB.loadDb();
+  const r = db.appointments.find(x => x.id === rdvId && x.adminId === currentUser.id);
+  if(!r) return;
+  const oldNextCheck = r.consultationNote && r.consultationNote.nextCheck ? r.consultationNote.nextCheck : '';
+  const nextCheck = document.getElementById('noteNextCheck').value;
+  if(nextCheck && nextCheck <= r.date){
+    alert('La date du prochain contrôle doit être après le rendez-vous terminé.');
+    return;
+  }
+  r.consultationNote = {
+    resume: document.getElementById('noteResume').value.trim(),
+    observation: document.getElementById('noteObservation').value.trim(),
+    treatment: document.getElementById('noteTreatment').value.trim(),
+    nextCheck: nextCheck,
+    privateNote: document.getElementById('notePrivate').value.trim(),
+    updatedAt: new Date().toISOString(),
+    updatedBy: currentUser.id
+  };
+  if(nextCheck && nextCheck !== oldNextCheck && r.clientId && r.clientId !== 'admin_direct'){
+    db.notifications = db.notifications || [];
+    const actionUrl = 'reservation.html?adminId=' + encodeURIComponent(r.adminId) + '&date=' + encodeURIComponent(nextCheck) + '&controlFor=' + encodeURIComponent(r.id);
+    db.notifications.unshift({
+      id: 'notif_' + Date.now() + '_' + Math.random().toString(16).slice(2),
+      targetRole: 'client', targetId: r.clientId, recipientRole: 'client', recipientId: r.clientId, userId: r.clientId,
+      title: 'Contrôle recommandé',
+      message: 'Un contrôle est recommandé le ' + nextCheck + '. Choisissez un créneau disponible pour confirmer votre réservation.',
+      appointmentId: r.id, read: false, createdAt: new Date().toISOString(), type: 'control',
+      actionUrl: actionUrl, actionLabel: 'Choisir un créneau'
+    });
+  }
+  RVDB.saveDb(db);
+  back();
+});
+function logoutAdmin(){ if(confirm('Êtes-vous sûr de vouloir vous déconnecter ?')){ RVDB.logout(); window.location.href='../interface.html'; } return false; }
+load();
+</script>
+</body>
+</html>

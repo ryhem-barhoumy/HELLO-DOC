@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Patients enregistrés</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="../db.js"></script>
+</head>
+<body class="page-patients">
+    <aside class="sidebar">
+    <h2>Espace Prestataire</h2>
+    <p class="doctor-name" id="adminSideName">Admin</p>
+    <a href="admin.html">▣ Tableau de bord</a>
+    <a href="disponibilites.html">◷ Disponibilités</a>
+    <a href="patients.html" class="active">👥 Patients enregistrés</a>
+    <a href="validation.html">✓ En attente de validation</a>
+    <a href="avis-patients.html">★ Avis des patients</a>
+    <a href="parametre.html">⚙ Paramètres</a>
+    <a href="#" onclick="return logoutAdmin()">↪ Se déconnecter</a>
+  </aside>
+  <main class="content">
+    <div class="page-header">
+      <h1>Patients enregistrés</h1>
+      <p>Liste des patients liés à vos rendez-vous.</p>
+    </div>
+
+    <section class="section list-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Patient</th>
+              <th>Email</th>
+              <th>Téléphone</th>
+              <th>Rendez-vous terminés</th>
+              <th>Dossier médical</th>
+            </tr>
+          </thead>
+          <tbody id="patientsList"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+<script>
+const currentUser = RVDB.getCurrentUser();
+if (!currentUser || currentUser.role !== 'admin') {
+  alert('Veuillez vous connecter comme admin.');
+  window.location.href = '../interface.html';
+}
+
+document.getElementById('adminSideName').textContent = currentUser.serviceTitle || currentUser.fullName || 'Admin';
+
+function safe(v){
+  return String(v || 'Non renseigné').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function safeAttr(v){
+  return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function isFinished(r){
+  return String(r.status || '').toLowerCase().includes('termin');
+}
+
+function getPatientKey(r){
+  return r.clientId && r.clientId !== 'admin_direct'
+    ? r.clientId
+    : (r.email || r.phone || r.patient || r.id);
+}
+
+function openHistory(key){ window.location.href = 'patient-rendezvous.html?patient=' + encodeURIComponent(key); }
+
+function renderPatients(){
+  const db = RVDB.loadDb();
+  const groups = new Map();
+
+  db.appointments
+    .filter(x => x.adminId === currentUser.id)
+    .forEach(r => {
+      const key = getPatientKey(r);
+      if(!groups.has(key)){
+        groups.set(key, {
+          key: key,
+          patient: r.patient,
+          email: r.email,
+          phone: r.phone,
+          appointments: []
+        });
+      }
+
+      const group = groups.get(key);
+      group.appointments.push(r);
+      group.patient = group.patient || r.patient;
+      group.email = group.email || r.email;
+      group.phone = group.phone || r.phone;
+    });
+
+  const rows = [...groups.values()].sort((a,b)=>{
+    const lastA = [...a.appointments].sort((x,y)=>(y.date+y.time).localeCompare(x.date+x.time))[0];
+    const lastB = [...b.appointments].sort((x,y)=>(y.date+y.time).localeCompare(x.date+x.time))[0];
+    return ((lastB?.date || '') + (lastB?.time || '')).localeCompare((lastA?.date || '') + (lastA?.time || ''));
+  });
+
+  document.getElementById('patientsList').innerHTML = rows.length ? rows.map((p,i)=>{
+    const doneCount = p.appointments.filter(isFinished).length;
+    return `
+      <tr>
+        <td>${i+1}</td>
+        <td>${safe(p.patient)}</td>
+        <td>${safe(p.email)}</td>
+        <td>${safe(p.phone)}</td>
+        <td><span class="status confirmed">${doneCount} terminé${doneCount > 1 ? 's' : ''}</span></td>
+        <td>
+          <button class="btn btn-outline history-btn" data-key="${safeAttr(p.key)}" onclick="openHistory(this.dataset.key)">Dossier médical</button>
+          </td>
+      </tr>
+    `;
+  }).join('') : '<tr><td colspan="6"><div class="empty">Aucun patient enregistré.</div></td></tr>';
+}
+
+function logoutAdmin(){
+  if(confirm('Êtes-vous sûr de vouloir vous déconnecter ?')){
+    RVDB.logout();
+    window.location.href='../interface.html';
+  }
+  return false;
+}
+
+renderPatients();
+</script>
+</body>
+</html>

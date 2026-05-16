@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion - Rendez-vous</title>
+  <link rel="stylesheet" href="interface.css">
+  <script src="db.js"></script>
+</head>
+<body>
+<main class="login-shell">
+  <section class="brand-side">
+    <div class="soft-shape s1"></div>
+    <div class="soft-shape s2"></div>
+    <div class="brand-content">
+      
+      <h1>Organisez vos rendez-vous avec simplicité</h1>
+    </div>
+  </section>
+
+  <section class="login-side">
+    <!-- <div class="top-language">🌐 Français</div> -->
+
+    <div id="roleScreen" class="login-card">
+      <h2>Bienvenue</h2>
+      <p class="muted">Choisissez votre espace pour continuer</p>
+      <button class="role-choice" onclick="showLogin('client')">
+        <span class="icon">👤</span>
+        <span><strong>Client</strong><small>Réserver et suivre mes rendez-vous</small></span>
+      </button>
+      <button class="role-choice" onclick="showLogin('admin')">
+        <span class="icon">🛠️</span>
+        <span><strong>Prestataire</strong><small>Gérer les demandes et les créneaux</small></span>
+      </button>
+    </div>
+
+    <div id="loginScreen" class="login-card hidden">
+      <button class="back-btn" onclick="backRole()">← Retour</button>
+      <div class="section hidden" id="clientBox">
+        <h2>Espace client</h2>
+        <p class="muted">Connectez-vous à votre compte</p>
+        <form id="clientForm">
+          <label>Email ou nom</label>
+          <input type="text" id="clientUsername" required>
+          <label>Mot de passe</label>
+          <input type="password" id="clientPassword" required>
+          <div class="forgot-password">
+         <a href="#" id="forgotPasswordLink">Mot de passe oublié ?</a>
+        </div>
+          <button type="submit">Login</button>
+          <p class="error" id="clientError">Nom d'utilisateur ou mot de passe incorrect</p>
+        </form>
+        <div class="signup-box">Vous n'avez pas encore de compte ? <a href="compte client/cree_un_compte_client.html">Créer un compte</a></div>
+      </div>
+
+      <div class="section hidden" id="adminBox">
+        <h2>Espace admin</h2>
+        <p class="muted">Accédez au tableau de bord</p>
+        <form id="adminForm">
+          <label>Email ou nom</label>
+          <input type="text" id="adminUsername" required>
+          <label>Mot de passe</label>
+          <input type="password" id="adminPassword" required>
+          <button type="submit">Login</button>
+          <p class="error" id="adminError">Nom d'utilisateur ou mot de passe incorrect</p>
+        </form>
+        <div class="signup-box">Vous n'avez pas encore de compte ? <a href="compte admin/cree_un_compte_admin.html">Créer un compte</a></div>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+function showLogin(role){
+  document.getElementById('roleScreen').classList.add('hidden');
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('clientBox').classList.toggle('hidden', role !== 'client');
+  document.getElementById('adminBox').classList.toggle('hidden', role !== 'admin');
+}
+function backRole(){
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('roleScreen').classList.remove('hidden');
+}
+document.getElementById('clientForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  const u = RVDB.login('client',(clientUsername.value||'').trim(),clientPassword.value||'');
+  if(u) location.href='compte client/index.html'; else clientError.style.display='block';
+});
+document.getElementById('adminForm').addEventListener('submit',function(e){
+  e.preventDefault();
+  const u = RVDB.login('admin',(adminUsername.value||'').trim(),adminPassword.value||'');
+  if(u) location.href='compte admin/admin.html'; else adminError.style.display='block';
+});
+
+document.getElementById("forgotPasswordLink").addEventListener("click", function(e) {
+  e.preventDefault();
+
+  const username = document.getElementById("clientUsername").value.trim();
+
+  if (!username) {
+    alert("Entrez votre email ou nom d'abord.");
+    return;
+  }
+
+  const raw = localStorage.getItem("rv_database_v6_final_dynamic");
+
+  if (!raw) {
+    alert("Base de données introuvable.");
+    return;
+  }
+
+  const db = JSON.parse(raw);
+
+  const user = db.clients.find(c =>
+    c.email === username ||
+    c.fullName === username ||
+    c.name === username
+  );
+
+  if (!user) {
+    alert("Aucun compte trouvé avec cet email ou nom.");
+    return;
+  }
+
+  alert("Votre mot de passe est : " + user.password);
+});
+</script>
+</body>
+</html>

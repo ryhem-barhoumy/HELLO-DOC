@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Historique de mes rendez-vous</title>
+
+<link rel="stylesheet" href="client.css">
+<script src="../db.js"></script>
+<script src="client-common.js"></script>
+</head>
+<body class="page-history">
+
+  <header>
+    <div class="container">
+      <h1>Gestion des Rendez-vous</h1>
+      <nav>
+        <ul>
+          <li><a href="index.html">Accueil</a></li>
+          <li><a href="services.html" class="active">Fonctionnalités</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li>
+            <a href="notifications.html" class="notif-link">
+              <span class="notif-icon">🔔</span>
+              <span class="notif-badge">2</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <section class="page-title">
+    <h2>Historique de mes rendez-vous</h2>
+    <div class="line"></div>
+   
+  </section>
+
+  <div class="container">
+    <section class="section-card">
+      <h3>Mes rendez-vous passés</h3>
+
+        <div id="appointmentList" class="appointment-list"></div>
+    </section>
+  </div>
+
+
+  <div id="reviewModal" class="modal-overlay" aria-hidden="true">
+    <div class="modal-card review-modal-card" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle">
+      <button type="button" class="modal-close" onclick="closeReviewModal()">×</button>
+      <h3 id="reviewModalTitle">Donner un avis</h3>
+      <p class="modal-subtitle" id="reviewModalSubtitle">Votre retour aide le prestataire à améliorer la qualité du service.</p>
+      <input type="hidden" id="reviewRdvId">
+
+      <label>Note</label>
+      <div class="rating-picker" id="ratingPicker" aria-label="Choisir une note">
+        <button type="button" data-rating="1">★</button>
+        <button type="button" data-rating="2">★</button>
+        <button type="button" data-rating="3">★</button>
+        <button type="button" data-rating="4">★</button>
+        <button type="button" data-rating="5">★</button>
+      </div>
+      <input type="hidden" id="reviewRating" value="5">
+
+      <label for="reviewComment">Commentaire</label>
+      <textarea id="reviewComment" rows="4" placeholder="Exemple : accueil agréable, rendez-vous bien organisé..."></textarea>
+
+      <label for="reviewRecommend">Recommandez-vous ce prestataire ?</label>
+      <select id="reviewRecommend">
+        <option value="Oui">Oui</option>
+        <option value="Non">Non</option>
+      </select>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-outline" onclick="closeReviewModal()">Annuler</button>
+        <button type="button" class="btn btn-success" onclick="saveReview()">Envoyer l’avis</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2025 Gestion des Rendez-vous. Tous droits réservés.</p>
+  </footer>
+
+<script>
+  const currentUser = RVDB.getCurrentUser();
+
+  if (!currentUser || currentUser.role !== 'client') {
+    alert('Veuillez vous connecter comme client.');
+    window.location.href = '../interface.html';
+  }
+
+  function statusClass(status) {
+    if (status === 'Annulé') return 'cancelled';
+    return 'past';
+  }
+
+  function safe(v){
+    return String(v || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+
+  function stars(n){
+    const rating = Number(n || 0);
+    return '<span class="stars-display">' + '★★★★★'.slice(0, rating) + '</span>';
+  }
+
+  function renderHistory() {
+    const db = RVDB.loadDb();
+
+    const list = db.appointments
+      .filter(x =>
+        x.clientId === currentUser.id &&
+        (x.status === 'Terminé' || x.status === 'Annulé')
+      )
+      .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+
+    const box = document.getElementById('appointmentList');
+
+    if (!list.length) {
+      box.innerHTML = '<p>Aucun rendez-vous terminé ou annulé pour le moment</p>';
+      return;
+    }
+
+    box.innerHTML = list.map(function(r) {
+      const review = r.patientReview;
+      const canReview = r.status === 'Terminé';
+      return `
+        <div class="appointment-item">
+          <div class="appointment-info">
+            <h4>${safe(r.service)}</h4>
+            <p>Date : ${safe(r.date)} — Heure : ${safe(r.time)}</p>
+            <p>Statut de la demande : ${safe(r.status)}</p>
+            <span class="status ${statusClass(r.status)}">${safe(r.status)}</span>
+            ${review ? `<div class="review-preview"><strong>Votre avis :</strong> ${stars(review.rating)} <span>${safe(review.comment || '')}</span></div>` : ''}
+          </div>
+          ${canReview ? `<button class="btn ${review ? 'btn-outline' : 'btn-success'}" onclick="openReviewModal('${r.id}')">${review ? 'Modifier mon avis' : 'Donner un avis'}</button>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function setRating(value){
+    document.getElementById('reviewRating').value = value;
+    document.querySelectorAll('#ratingPicker button').forEach(btn => {
+      btn.classList.toggle('active', Number(btn.dataset.rating) <= Number(value));
+    });
+  }
+
+  document.querySelectorAll('#ratingPicker button').forEach(btn => {
+    btn.addEventListener('click', () => setRating(btn.dataset.rating));
+  });
+
+  function openReviewModal(id){
+    const db = RVDB.loadDb();
+    const r = db.appointments.find(x => x.id === id && x.clientId === currentUser.id && x.status === 'Terminé');
+    if(!r) return;
+    const review = r.patientReview || {};
+    document.getElementById('reviewRdvId').value = id;
+    document.getElementById('reviewModalSubtitle').textContent = (r.service || 'Rendez-vous') + ' — ' + r.date + ' à ' + r.time;
+    document.getElementById('reviewComment').value = review.comment || '';
+    document.getElementById('reviewRecommend').value = review.recommend || 'Oui';
+    setRating(review.rating || 5);
+    document.getElementById('reviewModal').classList.add('show');
+    document.getElementById('reviewModal').setAttribute('aria-hidden','false');
+  }
+
+  function closeReviewModal(){
+    document.getElementById('reviewModal').classList.remove('show');
+    document.getElementById('reviewModal').setAttribute('aria-hidden','true');
+  }
+
+  function saveReview(){
+    const id = document.getElementById('reviewRdvId').value;
+    const db = RVDB.loadDb();
+    const r = db.appointments.find(x => x.id === id && x.clientId === currentUser.id && x.status === 'Terminé');
+    if(!r) return closeReviewModal();
+    r.patientReview = {
+      rating: Number(document.getElementById('reviewRating').value || 5),
+      comment: document.getElementById('reviewComment').value.trim(),
+      recommend: document.getElementById('reviewRecommend').value,
+      createdAt: r.patientReview && r.patientReview.createdAt ? r.patientReview.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      clientId: currentUser.id,
+      clientName: currentUser.fullName || currentUser.username || r.patient
+    };
+    RVDB.saveDb(db);
+    closeReviewModal();
+    renderHistory();
+    alert('Merci, votre avis a été enregistré.');
+  }
+
+  setRating(5);
+  renderHistory();
+</script>
+</body>
+</html>

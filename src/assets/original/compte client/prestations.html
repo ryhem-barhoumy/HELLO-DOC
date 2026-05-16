@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nos prestations</title>
+  <link rel="stylesheet" href="client.css">
+  <script src="../db.js"></script>
+  <script src="client-common.js"></script>
+
+</head>
+
+<body class="page-prestations">
+  <section class="hero">
+    <h1>Choisissez une prestation médicale</h1>
+  </section>
+
+  <section class="page-layout">
+    <aside class="filters">
+      <h2>Recherche</h2>
+      <div class="filters-row">
+        <div class="filter-group">
+          <input type="text" id="searchInput" placeholder="Rechercher un médecin...">
+        </div>
+        <div class="filter-group">
+          <select id="specialtyFilter">
+            <option value="">Toutes les spécialités</option>
+            <option value="Médecin généraliste">Médecin généraliste</option>
+            <option value="Dentiste / Orthodontiste">Dentiste / Orthodontiste</option>
+            <option value="Ophtalmologue">Ophtalmologue</option>
+            <option value="Gynécologue">Gynécologue</option>
+            <option value="Pédiatre">Pédiatre</option>
+            <option value="ORL">ORL</option>
+            <option value="Dermatologue">Dermatologue</option>
+            <option value="Neurologue">Neurologue</option>
+            <option value="Cardiologue">Cardiologue</option>
+          </select>
+        </div>
+        <button class="clear-btn" type="button" id="clearFilters"> ⟲</button>
+      </div>
+    </aside>
+
+    <main>
+      <section class="cards-container" id="cardsContainer"></section>
+      <p class="no-result" id="noResult">Aucune prestation médicale trouvée.</p>
+    </main>
+  </section>
+
+  <script>
+    function workingDaysText(a) {
+      const names = { '0': 'Dimanche', '1': 'Lundi', '2': 'Mardi', '3': 'Mercredi', '4': 'Jeudi', '5': 'Vendredi', '6': 'Samedi' };
+      const days = (a.workingDays && a.workingDays.length ? a.workingDays : ['1', '2', '3', '4', '5', '6']).map(String);
+      return days.map(d => names[d]).filter(Boolean).join(', ');
+    }
+
+
+    function serviceSummary(a) {
+      const services = RVDB.normalizeServices ? RVDB.normalizeServices(a) : (Array.isArray(a.services) ? a.services : []);
+      if (services.length === 1) return services[0].name + ': ' + services[0].price;
+      if (services.length > 1) return services.length + ' services disponibles';
+      return a.price || 'Sur demande';
+    }
+
+    function adminCards() {
+      return [...RVDB.loadDb().admins].reverse()
+        .filter(a => a.id !== 'admin_default' && a.email !== 'admin' && a.serviceTitle !== 'Dr. Ahmed Ben Ali')
+        .map(a => ({
+          id: a.id,
+          category: a.category || 'Médecin',
+          specialty: a.specialty || 'Médecin généraliste',
+          serviceType: a.serviceType || 'Consultation médicale',
+          title: a.serviceTitle || a.fullName || 'Médecin',
+          image: a.image || a.profileImage || 'medical.png',
+          description: a.description || 'Prestation médicale disponible avec réservation en ligne.',
+          duration: a.duration || ((a.durationMinutes || 30) + ' minutes'),
+          location: a.location || a.serviceLocation || a.address || 'Non précisé',
+          price: serviceSummary(a),
+          availability: workingDaysText(a)
+        }));
+    }
+
+    function render() {
+      const q = (searchInput.value || '').toLowerCase().trim();
+      const selectedSpecialty = specialtyFilter.value;
+
+      const data = adminCards().filter(s => (s.category || '').toLowerCase().includes('médecin') || (s.category || '').toLowerCase().includes('medecin'));
+
+      const filtered = data.filter(s => {
+        const text = (s.serviceType + ' ' + s.title + ' ' + s.description + ' ' + s.location + ' ' + s.specialty).toLowerCase();
+        const matchesSearch = !q || text.includes(q);
+        const matchesSpecialty = !selectedSpecialty || s.specialty === selectedSpecialty;
+        return matchesSearch && matchesSpecialty;
+      });
+
+      cardsContainer.innerHTML = filtered.map(s => `
+  <div class="card">
+    <span class="specialty-badge">${s.specialty}</span>
+    <img src="${s.image}" alt="${s.title}">
+    <h3>${s.title}</h3>
+    <p>${s.description}</p>
+
+    <div class="meta location-meta">
+      <span>📍 ${s.location}</span>
+    </div>
+
+    <a href="detail-service.html?adminId=${encodeURIComponent(s.id)}">Voir détails</a>
+  </div>
+`).join('');
+
+      noResult.style.display = filtered.length ? 'none' : 'block';
+    }
+
+    searchInput.addEventListener('input', render);
+    specialtyFilter.addEventListener('change', render);
+    clearFilters.addEventListener('click', function () {
+      searchInput.value = '';
+      specialtyFilter.value = '';
+      render();
+    });
+
+    render();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Dr. Ahmed Ben Ali</title>
+  <link rel="stylesheet" href="admin.css">
+<script src="../db.js"></script>
+</head>
+<body class="page-dashboard">
+    <aside class="sidebar">
+    <h2>Espace Prestataire</h2>
+    <p class="doctor-name" id="adminSideName">Admin</p>
+    <a href="admin.html" class="active">▣ Tableau de bord</a>
+    <a href="disponibilites.html">◷ Disponibilités</a>
+    <a href="patients.html">👥 Patients enregistrés</a>
+    <a href="validation.html">✓ En attente de validation</a>
+    <a href="avis-patients.html">★ Avis des patients</a>
+    <a href="parametre.html">⚙ Paramètres</a>
+    <a href="#" onclick="return logoutAdmin()">↪ Se déconnecter</a>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <h1 id="adminWelcome">Bienvenue</h1>
+
+    </div>
+
+    <section class="stats">
+      <div class="stat-card">
+        <h3>Demandes aujourd’hui</h3>
+        <p id="todayCount">0</p>
+      </div>
+
+      <div class="stat-card">
+        <h3>Patients enregistrés</h3>
+        <p id="patientCount">0</p>
+      </div>
+
+      <div class="stat-card">
+        <h3>En attente de validation</h3>
+        <p id="pendingCount">0</p>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Liste des rendez-vous</h2>
+      <div class="search-bar">
+        <input type="text" id="searchRdv" placeholder="Rechercher par nom du patient...">
+        <input type="date" id="filterDate">
+        
+      </div>
+
+      <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Patient</th>
+            <th>Date</th>
+            <th>Heure</th>
+            <th>Statut</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="rendezvousList"></tbody>
+      </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Ajouter un rendez-vous</h2>
+    
+      <form id="addRdvForm">
+        <div class="form-grid">
+          <input type="text" id="clientName" placeholder="Nom du patient" required>
+          <input type="tel" id="clientPhone" placeholder="Téléphone" required>
+          <input type="email" id="clientEmail" placeholder="Email (facultatif)">
+          <input type="text" id="clientAddress" placeholder="Adresse (facultatif)">
+          <input type="date" id="rdvDate" required>
+          <select id="rdvSlot" required>
+            <option value="">Choisir un créneau disponible</option>
+          </select>
+        </div>
+        <p id="slotHelp" class="subtitle" style="margin-top:10px;margin-bottom:0"></p>
+        <div style="margin-top: 16px;">
+          <button class="btn btn-success" type="submit">Ajouter le rendez-vous</button>
+        </div>
+      </form>
+    </section>
+
+    <div id="cancelModal" class="modal-overlay" aria-hidden="true">
+      <div class="modal-card cancel-modal-card" role="dialog" aria-modal="true" aria-labelledby="cancelModalTitle">
+        <button type="button" class="modal-close" onclick="closeCancelModal()">×</button>
+        <h3 id="cancelModalTitle">Annuler le rendez-vous</h3>
+        <p class="modal-subtitle">Indiquez le motif pour informer clairement le patient.</p>
+        <input type="hidden" id="cancelRdvId">
+        <label for="cancelReason">Motif d’annulation</label>
+        <select id="cancelReason" required>
+          <option value="Indisponibilité du médecin">Indisponibilité du médecin</option>
+          <option value="Urgence médicale">Urgence médicale</option>
+          <option value="Problème technique">Problème technique</option>
+          <option value="Autre motif">Autre motif</option>
+        </select>
+        <label for="cancelComment">Commentaire optionnel</label>
+        <textarea id="cancelComment" rows="3" placeholder="Ajouter une précision pour le patient..."></textarea>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" onclick="closeCancelModal()">Retour</button>
+          <button type="button" class="btn btn-danger" onclick="submitCancelRdv()">Confirmer l’annulation</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+  const currentUser = RVDB.getCurrentUser();
+  if (!currentUser || currentUser.role !== 'admin') { alert('Veuillez vous connecter comme admin.'); window.location.href = '../interface.html'; }
+function getAdminProfile(){
+  const db = RVDB.loadDb();
+  return db.admins.find(a => a.id === currentUser.id) || currentUser;
+}
+function getWorkingDays(){
+  const admin = getAdminProfile();
+  return (admin.workingDays && admin.workingDays.length ? admin.workingDays : ['1','2','3','4','5','6']).map(String);
+}
+function getDayNumber(dateStr){
+  return String(new Date(dateStr + 'T00:00:00').getDay());
+}
+function isWorkingDay(dateStr){
+  return getWorkingDays().includes(getDayNumber(dateStr));
+}
+
+function getAbsenceForDate(dateStr){
+  const db = RVDB.loadDb();
+  return (db.absences || []).find(a => a.adminId === currentUser.id && a.status !== 'Supprimée' && a.startDate <= dateStr && dateStr <= a.endDate);
+}
+
+function blockSlotsForNonWorkingDay(dateStr){
+  const db = RVDB.loadDb();
+  let changed = false;
+  db.slots.forEach(slot => {
+    if (slot.adminId === currentUser.id && slot.date === dateStr && !isWorkingDay(dateStr) && slot.status !== 'Réservé') {
+      slot.status = 'Bloqué';
+      changed = true;
+    }
+  });
+  if (changed) RVDB.saveDb(db);
+}
+
+document.getElementById('adminSideName').textContent = currentUser.serviceTitle || currentUser.fullName || 'Admin';
+document.getElementById('adminWelcome').textContent = 'Bienvenue ' + (currentUser.serviceTitle || currentUser.fullName || 'Admin');
+  function getStatusClass(status){ if(status==='Confirmé') return 'confirmed'; if(status==='En attente') return 'pending'; if(status==='Terminé') return 'confirmed'; if(status==='À reprogrammer') return 'reserved'; return 'cancelled'; }
+  function loadRdv(){
+    const db=RVDB.loadDb(); const search=document.getElementById('searchRdv').value.toLowerCase(); const filter=document.getElementById('filterDate').value;
+    const rows=db.appointments.filter(x=>x.adminId===currentUser.id && x.patient.toLowerCase().includes(search) && (!filter || x.date===filter)).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+    document.getElementById('rendezvousList').innerHTML = rows.map(function(r,i){ return '<tr><td>'+(i+1)+'</td><td>'+r.patient+'</td><td>'+r.date+'</td><td>'+r.time+'</td><td data-status="'+r.status+'"><span class="status '+getStatusClass(r.status)+'">'+r.status+'</span></td><td><div class="actions" data-id="'+r.id+'"></div></td></tr>'; }).join('');
+    renderActions(); updateStats();
+  }
+  function applyFilters(){ loadRdv(); }
+  function showDetails(id){ window.location.href='rdv-details.html?id='+encodeURIComponent(id); }
+  function confirmRdv(id){ RVDB.updateAppointment(id,{status:'Confirmé'}); loadRdv(); }
+  function notifyClient(r, title, message, extra){
+    if(!r || !r.clientId || r.clientId === 'admin_direct') return;
+    const db = RVDB.loadDb();
+    db.notifications = db.notifications || [];
+    db.notifications.unshift({
+      id: 'notif_' + Date.now() + '_' + Math.random().toString(16).slice(2),
+      role: 'client', recipientRole: 'client', userId: r.clientId, recipientId: r.clientId,
+      title: title, message: message, read: false, createdAt: new Date().toISOString(), appointmentId: r.id,
+      type: (extra && extra.type) || 'info', reason: extra && extra.reason ? extra.reason : '', comment: extra && extra.comment ? extra.comment : ''
+    });
+    RVDB.saveDb(db);
+  }
+  function canCancelAppointment(r){
+    if(!r || !r.date || !r.time) return false;
+    const start = new Date(r.date + 'T' + r.time);
+    return (start.getTime() - Date.now()) >= 60 * 60 * 1000;
+  }
+  function rejectRdv(id){
+    const db=RVDB.loadDb(); const r=db.appointments.find(x=>x.id===id);
+    if(r) notifyClient(r, 'Rendez-vous refusé', 'Votre demande de rendez-vous du ' + r.date + ' à ' + r.time + ' a été refusée.');
+    RVDB.cancelAppointment(id); loadRdv();
+  }
+  function openCancelModal(id){
+    const db=RVDB.loadDb(); const r=db.appointments.find(x=>x.id===id);
+    if(!r) return;
+    if(!canCancelAppointment(r)){
+      alert('Annulation impossible : il reste moins d’une heure avant le début du rendez-vous.');
+      return;
+    }
+    document.getElementById('cancelRdvId').value = id;
+    document.getElementById('cancelReason').value = 'Indisponibilité du médecin';
+    document.getElementById('cancelComment').value = '';
+    document.getElementById('cancelModal').classList.add('show');
+    document.getElementById('cancelModal').setAttribute('aria-hidden','false');
+  }
+  function closeCancelModal(){
+    document.getElementById('cancelModal').classList.remove('show');
+    document.getElementById('cancelModal').setAttribute('aria-hidden','true');
+  }
+  function submitCancelRdv(){
+    const id = document.getElementById('cancelRdvId').value;
+    const reason = document.getElementById('cancelReason').value;
+    const comment = document.getElementById('cancelComment').value.trim();
+    const db=RVDB.loadDb(); const r=db.appointments.find(x=>x.id===id);
+    if(!r) return closeCancelModal();
+    if(!canCancelAppointment(r)){
+      closeCancelModal();
+      alert('Annulation impossible : il reste moins d’une heure avant le début du rendez-vous.');
+      return;
+    }
+    RVDB.cancelAppointment(id, {reason: reason, comment: comment, byPrestataire: true});
+    closeCancelModal();
+    loadRdv();
+  }
+  function cancelRdvAdmin(id){ openCancelModal(id); }
+  function rescheduleRdv(id){ const db=RVDB.loadDb(); const r=db.appointments.find(x=>x.id===id); if(!r) return; const newDate=prompt('Nouvelle date',r.date); const newTime=prompt('Nouvelle heure',r.time); if(newDate&&newTime){ RVDB.updateAppointment(id,{date:newDate,time:newTime,status:'Confirmé'}); loadRdv(); } }
+  function appointmentEndDate(r){
+    if(!r || !r.date || !r.time) return null;
+    const db = RVDB.loadDb();
+    const slot = db.slots.find(s => s.id === r.slotId);
+    const endTime = slot && slot.end ? slot.end : r.time;
+    return new Date(r.date + 'T' + endTime);
+  }
+  function canFinishAppointment(r){
+    const end = appointmentEndDate(r);
+    return !!end && Date.now() >= end.getTime();
+  }
+  function finishRdv(id){
+    const db=RVDB.loadDb();
+    const r=db.appointments.find(x=>x.id===id);
+    if(!r) return;
+    if(!canFinishAppointment(r)){
+      alert('Impossible de terminer ce rendez-vous avant la fin du créneau.');
+      return;
+    }
+    RVDB.updateAppointment(id,{status:'Terminé'});
+    loadRdv();
+  }
+    function q(v){ return '&quot;' + v + '&quot;'; }
+  function renderActions(){
+    document.querySelectorAll('#rendezvousList .actions').forEach(function(cell){
+      const id=cell.dataset.id;
+      const tr=cell.closest('tr');
+      const status=tr.querySelector('td[data-status]').dataset.status;
+      const db=RVDB.loadDb();
+      const r=db.appointments.find(x=>x.id===id);
+      const cancelBtn = r && canCancelAppointment(r)
+        ? '<button class="btn btn-danger" onclick="openCancelModal('+q(id)+')">Annuler</button>'
+        : '';
+      if(status==='Confirmé'){
+        const finishBtn = r && canFinishAppointment(r)
+          ? '<button class="btn btn-success" onclick="finishRdv('+q(id)+')">Terminer</button>'
+          : '';
+        cell.innerHTML='<button class="btn btn-outline" onclick="showDetails('+q(id)+')">Détails</button>' + finishBtn + cancelBtn;
+      } else if(status==='En attente'){
+        cell.innerHTML='<button class="btn btn-success" onclick="confirmRdv('+q(id)+')">Confirmer</button><button class="btn btn-danger" onclick="rejectRdv('+q(id)+')">Refuser</button>';
+      } else if(status==='À reprogrammer'){
+        cell.innerHTML='<button class="btn btn-outline" onclick="showDetails('+q(id)+')">Détails</button>';
+      } else {
+        cell.innerHTML='<button class="btn btn-outline" onclick="showDetails('+q(id)+')">Détails</button>';
+      }
+    });
+  }
+  function patientKey(r){ return (r.clientId && r.clientId !== 'admin_direct') ? r.clientId : (r.email || r.phone || r.patient); }
+  function updateStats(){ const db=RVDB.loadDb(); const list=db.appointments.filter(x=>x.adminId===currentUser.id); document.getElementById('todayCount').innerText=list.filter(x=>x.date===RVDB.today()).length; document.getElementById('pendingCount').innerText=list.filter(x=>x.status==='En attente').length; document.getElementById('patientCount').innerText=new Set(list.map(patientKey)).size; }
+  function refreshAdminSlots(){
+    const date=document.getElementById('rdvDate').value;
+    const select=document.getElementById('rdvSlot');
+    if(!date){ select.innerHTML='<option value="">Choisir une date</option>'; return; }
+    if(date < RVDB.today()){ select.innerHTML='<option value="">Date invalide</option>'; document.getElementById('slotHelp').innerText='Choisissez la date actuelle ou une date future.'; return; }
+    const absence = getAbsenceForDate(date);
+    if(absence){
+      select.innerHTML='<option value="">Prestataire absent</option>';
+      document.getElementById('slotHelp').innerText='Absence déclarée : ' + absence.reason + '. Choisissez une autre date.';
+      return;
+    }
+    if(!isWorkingDay(date)){
+      blockSlotsForNonWorkingDay(date);
+      select.innerHTML='<option value="">Jour non travaillé</option>';
+      document.getElementById('slotHelp').innerText='';
+      return;
+    }
+    const slots=RVDB.generateSlotsForDate(currentUser.id,date).filter(s=>s.status==='Disponible');
+    select.innerHTML='<option value="">Choisir un créneau disponible</option>'+slots.map(s=>'<option value="'+s.id+'">'+s.start+' - '+s.end+'</option>').join('');
+    document.getElementById('slotHelp').innerText=slots.length ? slots.length+' créneau(x) disponible(s) pour cette date.' : 'Aucun créneau disponible pour cette date.';
+  }
+  document.getElementById('addRdvForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    const patient=document.getElementById('clientName').value.trim();
+    const phone=document.getElementById('clientPhone').value.trim();
+    const email=document.getElementById('clientEmail').value.trim();
+    const address=document.getElementById('clientAddress').value.trim();
+    const date=document.getElementById('rdvDate').value;
+    const slotId=document.getElementById('rdvSlot').value;
+    const notes='';
+    if(date < RVDB.today()) return alert('Impossible d’ajouter un rendez-vous avant la date actuelle.');
+    if(getAbsenceForDate(date)) return alert('Impossible d’ajouter un rendez-vous pendant une absence déclarée.');
+    if(!slotId) return alert('Choisissez un créneau disponible.');
+    const db=RVDB.loadDb();
+    const slot=db.slots.find(s=>s.id===slotId && s.status==='Disponible');
+    if(!slot) return alert('Ce créneau n’est plus disponible.');
+    slot.status='Réservé';
+    const appt={ id:'rdv_'+Date.now(), clientId:'admin_direct', adminId:currentUser.id, slotId:slot.id, patient, phone, email, address, service:'Ajouté au cabinet', serviceKind:'admin_direct', date:slot.date, time:slot.start, notes, status:'Confirmé', createdAt:new Date().toISOString() };
+    db.appointments.push(appt);
+    RVDB.saveDb(db);
+    this.reset();
+    document.getElementById('rdvDate').value=document.getElementById('filterDate').value || RVDB.today();
+    refreshAdminSlots();
+    loadRdv();
+  });
+  document.getElementById('searchRdv').addEventListener('input', loadRdv); document.getElementById('filterDate').addEventListener('change', loadRdv); document.getElementById('rdvDate').addEventListener('change', refreshAdminSlots);
+  document.getElementById('filterDate').value=RVDB.today(); document.getElementById('rdvDate').value=RVDB.today(); document.getElementById('rdvDate').min=RVDB.today(); refreshAdminSlots(); loadRdv();
+</script>
+<script>function logoutAdmin(){if(confirm('Êtes-vous sûr de vouloir vous déconnecter ?')){RVDB.logout();window.location.href='../interface.html';}return false;}</script>
+</body>
+</html>

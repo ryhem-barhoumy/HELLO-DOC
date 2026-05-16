@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dossier patient</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="../db.js"></script>
+</head>
+<body class="page-patients page-patient-history page-patient-dossier">
+  <aside class="sidebar">
+    <h2>Espace Prestataire</h2>
+    <p class="doctor-name" id="adminSideName">Admin</p>
+    <a href="admin.html">▣ Tableau de bord</a>
+    <a href="disponibilites.html">◷ Disponibilités</a>
+    <a href="patients.html" class="active">👥 Patients enregistrés</a>
+    <a href="validation.html">✓ En attente de validation</a>
+    <a href="avis-patients.html">★ Avis des patients</a>
+    <a href="parametre.html">⚙ Paramètres</a>
+    <a href="#" onclick="return logoutAdmin()">↪ Se déconnecter</a>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <h1 id="pageTitle">Dossier patient</h1>
+      <p id="pageSubtitle">Historique des rendez-vous terminés et notes internes.</p>
+    </div>
+
+    <section class="section patient-summary-card">
+      <div class="history-toolbar">
+        <button class="btn btn-outline" onclick="window.location.href='patients.html'">← Retour aux patients</button>
+      </div>
+      <h2>Informations patient</h2>
+      <div id="patientInfo" class="patient-info-grid"></div>
+    </section>
+
+    <section class="section list-card dossier-notes-section">
+      <div class="section-head-row">
+        <div>
+          <h2>Rendez-vous terminés</h2>
+          <p class="subtitle">Ajoutez une fiche de consultation pour garder un suivi professionnel du patient.</p>
+        </div>
+      </div>
+      <div id="historyPageList" class="history-list page-history-list"></div>
+    </section>
+
+  </main>
+
+<script>
+const currentUser = RVDB.getCurrentUser();
+if (!currentUser || currentUser.role !== 'admin') {
+  alert('Veuillez vous connecter comme admin.');
+  window.location.href = '../interface.html';
+}
+
+document.getElementById('adminSideName').textContent = currentUser.serviceTitle || currentUser.fullName || 'Admin';
+
+function safe(v){
+  return String(v || 'Non renseigné').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function safeAttr(v){
+  return String(v || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function isFinished(r){ return String(r.status || '').toLowerCase().includes('termin'); }
+function getPatientKey(r){ return r.clientId && r.clientId !== 'admin_direct' ? r.clientId : (r.email || r.phone || r.patient || r.id); }
+function noteHasContent(note){
+  return !!(note && (note.resume || note.observation || note.treatment || note.nextCheck || note.privateNote));
+}
+function noteLine(label, value){
+  return value ? `<div class="note-line"><span>${label}</span><p>${safe(value)}</p></div>` : '';
+}
+
+let currentPatientKey = decodeURIComponent(new URLSearchParams(location.search).get('patient') || '');
+
+function getPatientAppointments(){
+  const db = RVDB.loadDb();
+  return db.appointments.filter(r => r.adminId === currentUser.id && getPatientKey(r) === currentPatientKey);
+}
+
+function renderPatientInfo(all){
+  const p = all[0] || {};
+  const finishedCount = all.filter(isFinished).length;
+  document.getElementById('patientInfo').innerHTML = `
+    <div class="patient-info-box"><span>Nom du patient</span><strong>${safe(p.patient || 'Patient')}</strong></div>
+    <div class="patient-info-box"><span>Email</span><strong>${safe(p.email)}</strong></div>
+    <div class="patient-info-box"><span>Téléphone</span><strong>${safe(p.phone)}</strong></div>
+    <div class="patient-info-box"><span>Rendez-vous terminés</span><strong>${finishedCount}</strong></div>
+  `;
+}
+
+function render(){
+  const all = getPatientAppointments();
+  const patientName = (all[0] && all[0].patient) || 'Patient';
+  document.getElementById('pageTitle').textContent = 'Dossier patient';
+  document.getElementById('pageSubtitle').textContent = patientName + ' — historique médical interne et fiches de consultation.';
+  renderPatientInfo(all);
+
+  const finished = all.filter(isFinished).sort((a,b)=>(b.date + b.time).localeCompare(a.date + a.time));
+  document.getElementById('historyPageList').innerHTML = finished.length ? finished.map(r => {
+    const note = r.consultationNote || {};
+    const hasNote = noteHasContent(note);
+    const url = 'fiche-consultation.html?rdv=' + encodeURIComponent(r.id) + '&patient=' + encodeURIComponent(currentPatientKey);
+    return `
+      <div class="history-item history-item-large consultation-card compact-consultation-card">
+        <div class="consultation-main">
+          <div class="consultation-topline">
+            <div>
+              <strong>${safe(r.date)} à ${safe(r.time)}</strong>
+              <span>${safe(r.service || r.specialty || 'Consultation')}</span>
+              ${hasNote ? '<small class="note-state">Fiche déjà ajoutée</small>' : '<small class="note-state empty">Aucune fiche ajoutée</small>'}
+            </div>
+            <button class="btn ${hasNote ? 'btn-outline' : 'btn-success'}" onclick="window.location.href='${url}'">${hasNote ? 'Voir la fiche' : 'Ajouter une fiche'}</button>
+          </div>
+        </div>
+      </div>`;
+  }).join('') : '<div class="empty history-empty">Aucun rendez-vous terminé pour ce patient.</div>';
+}
+
+
+
+
+function logoutAdmin(){
+  if(confirm('Êtes-vous sûr de vouloir vous déconnecter ?')){
+    RVDB.logout();
+    window.location.href='../interface.html';
+  }
+  return false;
+}
+
+render();
+</script>
+</body>
+</html>

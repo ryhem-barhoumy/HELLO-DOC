@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications</title>
+    <script src="../db.js"></script>
+    <script src="client-common.js"></script>
+    <link rel="stylesheet" href="client.css">
+</head>
+
+<body class="page-notifications">
+    <section class="page-title">
+        <h2>Notifications</h2>
+        <div class="line"></div>
+    </section>
+    <div class="notifications-container">
+        <section class="notifications-card">
+            <div class="notif-list" id="notifList"></div>
+        </section>
+    </div>
+    <script>
+        const user = RVDB.getCurrentUser();
+        const mine = RVDB.getNotifications ? RVDB.getNotifications('client', user.id) : [];
+        function cls(n) {
+            const t = (n.title || '').toLowerCase();
+            if (t.includes('confirm')) return 'ok';
+            if (t.includes('annul') || t.includes('refus'))
+                return 'cancel';
+            if (t.includes('attente') || t.includes('envoy')) return 'wait'; if (t.includes('contrôle')) return 'wait'; return 'info'
+        }
+        function icon(n) {
+            const t = (n.title || '').toLowerCase();
+            if (t.includes('confirm')) return '✔';
+            if (t.includes('annul') || t.includes('refus')) return '✖';
+            if (t.includes('attente') || t.includes('envoy')) return '⏳'; if (t.includes('contrôle')) return '📅'; return '🔔'
+        }
+        function safe(v){ return String(v || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+        notifList.innerHTML = mine.length ? mine.map(function (n) {
+            var reasonBlock = n.reason ? '<div class="notif-reason"><strong>Motif :</strong> ' + safe(n.reason) + (n.comment ? '<br><strong>Commentaire :</strong> ' + safe(n.comment) : '') + '</div>' : '';
+            var actionBlock = n.actionUrl ? '<a class="notif-action-btn" href="' + safe(n.actionUrl) + '">' + safe(n.actionLabel || 'Voir') + '</a>' : '';
+            return '<div class="notif-item"><div class="notif-item-icon '
+                + cls(n) + '">'
+                + icon(n) + '</div><div class="notif-content"><h4>'
+                + safe(n.title)
+                + '</h4><p>'
+                + safe(n.message) + '</p>' + reasonBlock + actionBlock + '<span class="notif-date">'
+                + (n.createdAt ? new Date(n.createdAt).toLocaleString('fr-FR') : '') + '</span></div></div>';
+        })
+            .join('') : '<div class="empty-box">Aucune notification pour le moment.</div>';
+        if (RVDB.markNotificationsRead)
+            RVDB.markNotificationsRead('client', user.id);
+    </script>
+</body>
+
+</html>

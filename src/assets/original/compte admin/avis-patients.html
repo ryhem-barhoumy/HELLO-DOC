@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avis des patients</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="../db.js"></script>
+</head>
+<body class="page-reviews">
+  <aside class="sidebar">
+    <h2>Espace Prestataire</h2>
+    <p class="doctor-name" id="adminSideName">Admin</p>
+    <a href="admin.html">▣ Tableau de bord</a>
+    <a href="disponibilites.html">◷ Disponibilités</a>
+    <a href="patients.html">👥 Patients enregistrés</a>
+    <a href="validation.html">✓ En attente de validation</a>
+    <a href="avis-patients.html" class="active">★ Avis des patients</a>
+    <a href="parametre.html">⚙ Paramètres</a>
+    <a href="#" onclick="return logoutAdmin()">↪ Se déconnecter</a>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <h1>Avis des patients</h1>
+      <p>Suivez la satisfaction après les rendez-vous terminés.</p>
+    </div>
+
+    <section class="stats review-stats">
+      <div class="stat-card">
+        <h3>Moyenne des avis</h3>
+        <p id="avgRating">0/5</p>
+        <small id="avgStars" class="stars-display">★★★★★</small>
+      </div>
+      <div class="stat-card">
+        <h3>Total avis</h3>
+        <p id="totalReviews">0</p>
+      </div>
+      <div class="stat-card">
+        <h3>Recommandation</h3>
+        <p id="recommendRate">0%</p>
+      </div>
+    </section>
+
+    <section class="section list-card reviews-section-card">
+      <div class="section-head-row reviews-head-row">
+        <div>
+          <h2>Commentaires reçus</h2>
+          <p class="subtitle">Filtrez les avis par note pour identifier rapidement les points à améliorer.</p>
+        </div>
+        <select id="filterRating" class="compact-select">
+          <option value="">Toutes les notes</option>
+          <option value="5">5 étoiles</option>
+          <option value="4">4 étoiles</option>
+          <option value="3">3 étoiles</option>
+          <option value="2">2 étoiles</option>
+          <option value="1">1 étoile</option>
+        </select>
+      </div>
+      <div id="reviewList" class="review-list-admin"></div>
+    </section>
+  </main>
+
+<script>
+const currentUser = RVDB.getCurrentUser();
+if (!currentUser || currentUser.role !== 'admin') {
+  alert('Veuillez vous connecter comme admin.');
+  window.location.href = '../interface.html';
+}
+document.getElementById('adminSideName').textContent = currentUser.serviceTitle || currentUser.fullName || 'Admin';
+
+function safe(v){ return String(v || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function stars(n){ const r = Number(n || 0); return '<span class="stars-inline">' + '★★★★★'.split('').map((s,i)=>`<span class="${i < r ? 'on' : ''}">★</span>`).join('') + '</span>'; }
+function collectReviews(){
+  const db = RVDB.loadDb();
+  return db.appointments
+    .filter(r => r.adminId === currentUser.id && r.status === 'Terminé' && r.patientReview)
+    .map(r => ({ appointment: r, review: r.patientReview }))
+    .sort((a,b)=>(b.review.updatedAt || b.review.createdAt || '').localeCompare(a.review.updatedAt || a.review.createdAt || ''));
+}
+function renderReviews(){
+  const all = collectReviews();
+  const selected = document.getElementById('filterRating').value;
+  const filtered = selected ? all.filter(x => String(x.review.rating) === selected) : all;
+  const total = all.length;
+  const avg = total ? (all.reduce((s,x)=>s+Number(x.review.rating || 0),0) / total) : 0;
+  const rec = total ? Math.round(all.filter(x => x.review.recommend === 'Oui').length * 100 / total) : 0;
+  document.getElementById('avgRating').textContent = total ? avg.toFixed(1) + '/5' : '0/5';
+  document.getElementById('avgStars').innerHTML = stars(Math.round(avg));
+  document.getElementById('totalReviews').textContent = total;
+  document.getElementById('recommendRate').textContent = rec + '%';
+  document.getElementById('reviewList').innerHTML = filtered.length ? filtered.map(({appointment:r, review:v}) => `
+    <article class="review-card-admin">
+      <div class="review-card-head">
+        <div>
+          <strong>${safe(v.clientName || r.patient)}</strong>
+          <span>${safe(r.service || 'Rendez-vous')} — ${safe(r.date)} à ${safe(r.time)}</span>
+        </div>
+        <div class="review-score"><b>${safe(v.rating)}/5</b>${stars(v.rating)}</div>
+      </div>
+      <p>${safe(v.comment || 'Aucun commentaire ajouté.')}</p>
+      <div class="review-meta">
+        <span>Recommande : <b>${safe(v.recommend || 'Non renseigné')}</b></span>
+        <span>Avis envoyé le ${safe((v.updatedAt || v.createdAt || '').slice(0,10))}</span>
+      </div>
+    </article>
+  `).join('') : '<div class="empty">Aucun avis patient pour ce filtre.</div>';
+}
+document.getElementById('filterRating').addEventListener('change', renderReviews);
+function logoutAdmin(){ if(confirm('Êtes-vous sûr de vouloir vous déconnecter ?')){ RVDB.logout(); window.location.href='../interface.html'; } return false; }
+renderReviews();
+</script>
+</body>
+</html>

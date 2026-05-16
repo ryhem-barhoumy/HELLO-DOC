@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Détails rendez-vous</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="../db.js"></script>
+
+  <style>
+    body.page-details{
+      background:linear-gradient(135deg,#f6fbf8 0%,#ffffff 62%,#eefaf2 100%);
+      color:#142033;
+      font-family:"Segoe UI",Roboto,Arial,sans-serif;
+    }
+    body.page-details .content{padding:34px 34px 56px;}
+    body.page-details .page-header h1{
+      font-size:clamp(2rem,3.2vw,2.8rem);
+      font-weight:750;
+      letter-spacing:-.8px;
+      margin-bottom:22px;
+      color:#101827;
+    }
+    body.page-details .details-card{
+      max-width:980px;
+      padding:0;
+      border:0;
+      border-radius:26px;
+      background:#fff;
+      box-shadow:0 22px 55px rgba(16,24,39,.08);
+      overflow:hidden;
+    }
+    body.page-details .details-hero{
+      padding:28px 32px;
+      background:linear-gradient(135deg,#0f7a3a,#1fad5d);
+      color:#fff;
+    }
+    body.page-details .details-hero h2{
+      margin:0 0 6px;
+      font-size:clamp(1.45rem,2.4vw,2.05rem);
+      line-height:1.25;
+      color:#fff;
+      font-weight:700;
+    }
+    body.page-details .details-hero p{
+      margin:0;
+      opacity:.9;
+      font-size:.98rem;
+    }
+    body.page-details .details-grid{
+      padding:28px 32px 32px;
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:16px;
+    }
+    body.page-details .detail-box{
+      border:1px solid #d9eee0;
+      background:#fbfffc;
+      border-radius:18px;
+      padding:17px 18px;
+    }
+    body.page-details .detail-box span{
+      display:block;
+      color:#59708c;
+      font-size:.9rem;
+      margin-bottom:6px;
+      font-weight:400;
+    }
+    body.page-details .detail-box strong{
+      color:#0f172a;
+      font-size:1.02rem;
+      font-weight:600;
+      word-break:break-word;
+    }
+    body.page-details .status{
+      display:inline-flex;
+      min-width:120px;
+      justify-content:center;
+      padding:8px 14px;
+      border-radius:999px;
+      font-weight:600;
+      font-size:.92rem;
+    }
+    body.page-details .confirmed{background:#e8f8ee;color:#087942;}
+    body.page-details .pending{background:#fff4df;color:#9a6500;}
+    body.page-details .cancelled{background:#fdeaea;color:#b42318;}
+    @media(max-width:760px){
+      body.page-details .content{padding:22px 16px 38px;}
+      body.page-details .details-grid{grid-template-columns:1fr;padding:22px;}
+      body.page-details .details-hero{padding:24px 22px;}
+    }
+  </style>
+
+</head>
+<body class="page-details">
+    <aside class="sidebar">
+    <h2>Espace Prestataire</h2>
+    <p class="doctor-name" id="adminSideName">Admin</p>
+    <a href="admin.html">▣ Tableau de bord</a>
+    <a href="disponibilites.html">◷ Disponibilités</a>
+    <a href="patients.html">👥 Patients enregistrés</a>
+    <a href="validation.html">✓ En attente de validation</a>
+    <a href="avis-patients.html">★ Avis des patients</a>
+    <a href="parametre.html">⚙ Paramètres</a>
+    <a href="#" onclick="return logoutAdmin()">↪ Se déconnecter</a>
+  </aside>
+
+  <main class="content">
+    <div class="page-header">
+      <h1>Détails du rendez-vous</h1>
+    </div>
+
+    <section class="section details-card" id="detailsBox"></section>
+  </main>
+
+<script>
+const currentUser = RVDB.getCurrentUser();
+if (!currentUser || currentUser.role !== 'admin') { alert('Veuillez vous connecter comme admin.'); window.location.href = '../interface.html'; }
+document.getElementById('adminSideName').textContent = currentUser.serviceTitle || currentUser.fullName || 'Admin';
+function safe(v){ return String(v || 'Non renseigné').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function getStatusClass(status){ if(status==='Confirmé' || status==='Terminé') return 'confirmed'; if(status==='En attente') return 'pending'; return 'cancelled'; }
+function displayService(r){ let v = r.selectedService || r.service || 'Rendez-vous'; if(String(v).includes(' - ')) v = String(v).split(' - ').pop().trim(); return v; }
+function renderDetails(){
+  const id = new URLSearchParams(location.search).get('id');
+  const db = RVDB.loadDb();
+  const r = db.appointments.find(x => x.id === id && x.adminId === currentUser.id);
+  const box = document.getElementById('detailsBox');
+  if(!r){ box.innerHTML = '<div class="empty">Rendez-vous introuvable.</div>'; return; }
+  box.innerHTML = `
+    <div class="details-hero">
+      <h2>${safe(displayService(r))}</h2>
+      <p>Dossier de rendez-vous du patient sélectionné</p>
+    </div>
+    <div class="details-grid">
+      <div class="detail-box"><span>Patient</span><strong>${safe(r.patient)}</strong></div>
+      <div class="detail-box"><span>Email</span><strong>${safe(r.email)}</strong></div>
+      <div class="detail-box"><span>Téléphone</span><strong>${safe(r.phone)}</strong></div>
+      <div class="detail-box"><span>Adresse</span><strong>${safe(r.address)}</strong></div>
+      <div class="detail-box"><span>Date et heure de consultation</span><strong>${safe(r.date)} à ${safe(r.time)}</strong></div>
+      <div class="detail-box"><span>Tarif</span><strong>${safe(r.price || 'Non renseigné')}</strong></div>
+      <div class="detail-box"><span>Statut</span><strong><span class="status ${getStatusClass(r.status)}">${safe(r.status)}</span></strong></div>
+    </div>
+  `;
+}
+function logoutAdmin(){ if(confirm('Êtes-vous sûr de vouloir vous déconnecter ?')){ RVDB.logout(); window.location.href='../interface.html'; } return false; }
+renderDetails();
+</script>
+</body>
+</html>
