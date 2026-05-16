@@ -13,7 +13,7 @@
             </div>
             <script>
             const u=RVDB.getCurrentUser(); 
-            if(!u||u.role!=='client'){alert('Veuillez vous connecter comme client.'); 
+            if(!u||u.role!=='client'){alert('Veuillez vous connecter comme patient.'); 
             location.href='../interface.html';} 
             function cls(s){return s==='Confirmé'?'confirmed':'pending';}
             function canCancel(r){const start=new Date(r.date+'T'+r.time); return (start.getTime()-Date.now())>=60*60*1000;}

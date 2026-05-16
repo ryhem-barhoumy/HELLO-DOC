@@ -26,18 +26,18 @@
       <p class="muted">Choisissez votre espace pour continuer</p>
       <button class="role-choice" onclick="showLogin('client')">
         <span class="icon">👤</span>
-        <span><strong>Client</strong><small>Réserver et suivre mes rendez-vous</small></span>
+        <span><strong>Patient</strong><small>Réserver et suivre mes rendez-vous</small></span>
       </button>
       <button class="role-choice" onclick="showLogin('admin')">
         <span class="icon">🛠️</span>
-        <span><strong>Prestataire</strong><small>Gérer les demandes et les créneaux</small></span>
+        <span><strong>Médecin</strong><small>Gérer les demandes et les créneaux</small></span>
       </button>
     </div>
 
     <div id="loginScreen" class="login-card hidden">
       <button class="back-btn" onclick="backRole()">← Retour</button>
       <div class="section hidden" id="clientBox">
-        <h2>Espace client</h2>
+        <h2>Espace Patient</h2>
         <p class="muted">Connectez-vous à votre compte</p>
         <form id="clientForm">
           <label>Email ou nom</label>

@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Créer un Compte Médecin</title>
   <link rel="stylesheet" href="admin.css">
+ 
   <script src="../db.js"></script>
 </head>
 <body class="page-create-admin">
   <div class="form-container">
-    <h2>Créer un Compte Médecin</h2>
+    <h2 class="form-title">Créer un Compte</h2>
     <form id="createPrestataireAccountForm" autocomplete="off" onsubmit="handleFormSubmit(event)">
       <div class="form-group">
         <label for="prestataireFullName" class="required">Nom Complet</label>
@@ -100,7 +101,7 @@
             </div>
             <button type="button" class="service-add-btn" onclick="addMedicalService()">Ajouter</button>
           </div>
-          <p class="hint">Ajoutez au moins un service. Le client choisira ce service pendant la réservation.</p>
+          <p class="hint">Ajoutez au moins un service.</p>
           <ul class="service-list" id="servicesList"></ul>
         </div>
       </div>

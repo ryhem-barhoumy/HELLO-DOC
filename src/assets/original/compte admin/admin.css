@@ -2212,3 +2212,7 @@ button.btn-danger:hover,
 .btn-danger:hover {
   background: #b91c1c !important;
 }
+/* Centrer le titre Créer un compte */
+body.page-create-admin .form-container h2{
+  text-align:center!important;
+}

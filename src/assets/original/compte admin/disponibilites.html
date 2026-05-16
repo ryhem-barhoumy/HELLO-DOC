@@ -10,7 +10,7 @@
 <body class="page-availability">
 
 <aside class="sidebar">
-    <h2>Espace Prestataire</h2>
+    <h2>Espace Médecin</h2>
     <p class="doctor-name" id="adminSideName">Admin</p>
     <a href="admin.html">▣ Tableau de bord</a>
     <a href="disponibilites.html" class="active">◷ Disponibilités</a>
@@ -188,7 +188,7 @@ function applyAbsenceToPlanning(absence){
           id:'notif_' + Date.now() + '_' + Math.random().toString(16).slice(2),
           role:'client', recipientRole:'client', userId:r.clientId, recipientId:r.clientId,
           title:'Rendez-vous à reprogrammer',
-          message:'Votre rendez-vous du ' + r.date + ' à ' + r.time + ' doit être reprogrammé suite à une absence du prestataire.',
+          message:'Votre rendez-vous du ' + r.date + ' à ' + r.time + ' doit être reprogrammé suite à une absence du médecin.',
           read:false, createdAt:new Date().toISOString(), appointmentId:r.id,
           type:'absence', reason:absence.reason, comment:absence.comment || ''
         });

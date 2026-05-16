@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paramètres Client</title>
+    <title>Paramètres Patient</title>
     <script src="../db.js"></script>
     <script src="client-common.js"></script>
     <link rel="stylesheet" href="client.css">
@@ -21,10 +21,10 @@
                 <div class="settings-profile">
                     <div class="profile-image-preview" id="clientImagePreview">👤</div>
                     <div>
-                        <label for="clientImage">Image du profil <span class="optional-label">facultative</span></label>
+                        <label for="clientImage">Image du profil <span class="optional-label"></span></label>
                         <input type="file" id="clientImage" accept="image/*">
                         <button type="button" id="removeClientImageBtn" class="btn btn-danger image-remove-btn">Supprimer l'image</button>
-                        <p class="hint">L'image actuelle reste enregistrée si vous ne choisissez pas une nouvelle image. Pour la supprimer, cliquez sur le bouton rouge puis confirmez les modifications.</p>
+                        <p class="hint"></p>
                     </div>
                 </div>
                 <div class="grid">
@@ -62,7 +62,7 @@
         </section>
         <section class="section danger">
             <h2>Supprimer le compte</h2>
-            <p class="note">Cette action supprimera votre compte client et vos rendez-vous.</p>
+            <p class="note">Cette action supprimera votre compte patient et vos rendez-vous.</p>
             <form id="deleteAccountForm">
                 <div class="grid">
                     <div class="form-group"><label>Mot de passe actuel</label><input type="password" id="deletePassword"

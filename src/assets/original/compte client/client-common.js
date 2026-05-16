@@ -23,9 +23,9 @@
       </nav>
       <div class="topbar-actions">
         <button class="notif-btn" id="openNotif" title="Notifications">🔔${notifCount > 0 ? '<span class="notif-badge">'+notifCount+'</span>' : ''}</button>
-        <button class="profile-btn" id="openClientPanel" title="Espace client">
+        <button class="profile-btn" id="openClientPanel" title="Espace Patient">
           <span class="profile-avatar">${avatarHtml}</span>
-          <span><strong>${name}</strong><small>Client</small></span>
+          <span><strong>${name}</strong><small>Patient</small></span>
         </button>
       </div>`;
     document.body.prepend(topbar);

@@ -9,7 +9,7 @@
 </head>
 <body class="page-dashboard">
     <aside class="sidebar">
-    <h2>Espace Prestataire</h2>
+    <h2>Espace Médecin</h2>
     <p class="doctor-name" id="adminSideName">Admin</p>
     <a href="admin.html" class="active">▣ Tableau de bord</a>
     <a href="disponibilites.html">◷ Disponibilités</a>
@@ -272,7 +272,7 @@ document.getElementById('adminWelcome').textContent = 'Bienvenue ' + (currentUse
     if(date < RVDB.today()){ select.innerHTML='<option value="">Date invalide</option>'; document.getElementById('slotHelp').innerText='Choisissez la date actuelle ou une date future.'; return; }
     const absence = getAbsenceForDate(date);
     if(absence){
-      select.innerHTML='<option value="">Prestataire absent</option>';
+      select.innerHTML='<option value="">Médecin absent</option>';
       document.getElementById('slotHelp').innerText='Absence déclarée : ' + absence.reason + '. Choisissez une autre date.';
       return;
     }
