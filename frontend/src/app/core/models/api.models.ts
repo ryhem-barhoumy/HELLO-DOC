@@ -1,4 +1,4 @@
-export type Role = 'ADMIN' | 'DOCTOR' | 'PATIENT';
+export type Role = 'ADMIN' | 'DOCTOR' | 'PATIENT' | 'USER';
 export type AccountStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'INACTIVE';
 export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'TO_RESCHEDULE' | 'COMPLETED' | 'RESCHEDULED';
 export interface SessionUser { id: string; firstName: string; lastName: string; email: string; role: Role; status: AccountStatus; }

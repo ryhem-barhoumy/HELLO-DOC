@@ -4,7 +4,7 @@ import { RegistrationComponent } from './features/auth/registration.component';
 import { LoginComponent } from './features/auth/login.component';
 import { ForgotPasswordComponent } from './features/auth/forgot-password.component';
 import { PortalComponent } from './features/portal/portal.component';
-import { roleGuard } from './core/guards/auth.guard';
+import { adminGuard, roleGuard } from './core/guards/auth.guard';
 import { Role } from './core/models/api.models';
 import { DoctorDetailComponent } from './features/patient/doctor-detail.component';
 import { BookingComponent } from './features/patient/booking.component';
@@ -33,8 +33,10 @@ export const routes: Routes = [
   { path: 'medecin/rendez-vous/:appointmentId/reprogrammer', component:RescheduleComponent, canActivate:[roleGuard], data:{roles:['DOCTOR']}, title:'Reprogrammer un rendez-vous | Hello Doc' },
   { path: 'medecin/rendez-vous/:appointmentId', component:AppointmentDetailComponent, canActivate:[roleGuard], data:{roles:['DOCTOR']}, title:'Rendez-vous | Hello Doc' },
   { path: 'medecin/patients/:patientId', component:PatientDossierComponent, canActivate:[roleGuard], data:{roles:['DOCTOR']}, title:'Dossier patient | Hello Doc' },
-  { path: 'admin', ...portal('ADMIN') }, { path: 'admin/:area', ...portal('ADMIN') },
-  { path: 'admin/rendez-vous/:appointmentId', component:AppointmentDetailComponent, canActivate:[roleGuard], data:{roles:['ADMIN']}, title:'Rendez-vous | Hello Doc' },
+  { path: 'admin', redirectTo: 'admin/dashboard', pathMatch: 'full' },
+  { path: 'admin/dashboard', component: PortalComponent, canActivate:[adminGuard], data:{roles:['ADMIN']}, title:'Administration | Hello Doc' },
+  { path: 'admin/rendez-vous/:appointmentId', component:AppointmentDetailComponent, canActivate:[adminGuard], title:'Rendez-vous | Hello Doc' },
+  { path: 'admin/:area', component: PortalComponent, canActivate:[adminGuard], data:{roles:['ADMIN']}, title:'Administration | Hello Doc' },
   { path: 'access-denied', component: AccessDeniedComponent, title: 'Accès refusé | Hello Doc' },
   { path: '**', redirectTo: '' }
 ];

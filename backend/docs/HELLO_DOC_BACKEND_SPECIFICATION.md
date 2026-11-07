@@ -1,6 +1,6 @@
 # Hello Doc — Spring Boot Backend Specification
 
-**Status:** proposed implementation contract for the Angular frontend. All routes below are future endpoints; no backend currently exists. **Base URL:** `http://localhost:8080/api`. **Locale:** French UI; enum/API values are English. **Roles:** `PATIENT`, `DOCTOR`, `ADMIN`.
+**Status:** partially implemented. The Maven backend provides MySQL account persistence, BCrypt, environment-based one-time admin seeding, session login/logout/restore, CSRF, password change, public patient registration as `USER`, persisted pending doctor applications that become `DOCTOR` only after admin approval, and role-protected `/admin/me`, `/admin/dashboard`, and doctor-approval endpoints. Remaining business endpoints in this document are the target contract and are not yet implemented. **Base URL:** `http://localhost:8080/api`. **Database:** MySQL through Laragon. The Angular workspace accepts active `USER` accounts as patients and approved `DOCTOR` accounts for the doctor area.
 
 ## 1. Product and frontend contract
 
@@ -48,11 +48,11 @@ The backend owns identity, authorization, validation, persistence, scheduling, d
 
 ## 3. Domain and database model
 
-Use PostgreSQL (recommended) with UUID primary keys, UTC `timestamptz` instants, explicit clinic timezone (IANA identifier), `created_at`, `updated_at`, optimistic version where concurrent edits are possible, and migrations (Flyway/Liquibase). Store only necessary clinical and identity data. Use soft deactivation/status where audit history must remain.
+Use the Laragon MySQL server with UUID primary keys, UTC timestamps, explicit clinic timezone (IANA identifier), `created_at`, `updated_at`, optimistic version where concurrent edits are possible, and migrations (Flyway/Liquibase). Store only necessary clinical and identity data. Use soft deactivation/status where audit history must remain. The current auth implementation uses Hibernate schema update for the initial `users` table; migration-managed schema is still recommended before production.
 
 ### User (identity and login)
 
-`id UUID PK`, `email VARCHAR(254) UNIQUE NOT NULL` (normalized lowercase), `password_hash VARCHAR(255) NOT NULL`, `first_name VARCHAR(100)`, `last_name VARCHAR(100)`, `phone VARCHAR(32)`, `role VARCHAR(16) NOT NULL CHECK IN ADMIN/DOCTOR/PATIENT`, `account_status VARCHAR(16) NOT NULL`, `email_verified_at TIMESTAMPTZ NULL`, `last_login_at`, `created_at`, `updated_at`, `version BIGINT`. Index `(role, account_status)`. One-to-one Patient or Doctor extension depending on role; admin may have neither. Password hash only, never a password.
+`id UUID PK`, `email VARCHAR(254) UNIQUE NOT NULL` (normalized lowercase), `password_hash VARCHAR(255) NOT NULL`, `first_name VARCHAR(100)`, `last_name VARCHAR(100)`, `role VARCHAR(16) NOT NULL CHECK IN ADMIN/DOCTOR/PATIENT/USER`, `account_status VARCHAR(16) NOT NULL`. The current Java entity persists this core. Planned profile and audit columns are not implemented yet. Password hash only, never a password.
 
 ### Patient
 

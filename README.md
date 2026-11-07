@@ -1,12 +1,13 @@
 # Hello Doc monorepo
 
-Hello Doc contains an Angular 20 frontend and the API contract for a teammate's Java Spring Boot backend. The backend implementation and database are not included in this repository.
+Hello Doc contains an Angular 20 frontend and a Java Spring Boot backend in progress. The backend currently implements MySQL-backed session authentication, patient registration, pending doctor applications with administrator approval, role-protected administrator endpoints, and an idempotent initial admin seed. The broader patient, doctor, and appointment API remains specified but unfinished.
 
 ## Repository layout
 
-- `frontend/` — complete Angular application, dependencies, configuration, and frontend README.
-- `backend/docs/HELLO_DOC_BACKEND_SPECIFICATION.md` — proposed Spring Boot API, domain, security, and integration contract.
-- `.git/` — this repository's Git history and metadata remain at the monorepo root.
+- `frontend/` - Angular application, dependencies, and frontend documentation.
+- `backend/` - Spring Boot source, Maven build, and setup instructions.
+- `backend/docs/HELLO_DOC_BACKEND_SPECIFICATION.md` - full API/domain contract and implementation status.
+- `.git/` - repository history at the monorepo root.
 
 ## Run the Angular frontend
 
@@ -18,13 +19,10 @@ npm ci
 npm start
 ```
 
-Open `http://localhost:4200`. Angular CLI commands run from `frontend/`:
+Open `http://localhost:4200`. Build with `npm run build` or `npm run build -- --configuration production`.
 
-```powershell
-npm run build
-npm run build -- --configuration production
-```
+## Run the backend
 
-The frontend expects a Spring Boot API at `http://localhost:8080/api` by default. Until that service is implemented and configured for credentialed CORS and CSRF, API-backed sign-in, persistence, and patient/doctor/admin workflows will report the service as unavailable. The frontend does not include a Node.js backend, mock database, or fake authentication.
+Start Laragon MySQL and follow [backend/README.md](backend/README.md) to securely create/verify `hello_doc` and run the backend. The backend defaults to `http://localhost:8080/api`. Sign-in, registration, doctor application approval, and admin endpoints use the configured MySQL database. Other patient, doctor, and appointment workflows remain unavailable until those APIs are implemented.
 
-See [frontend/README.md](frontend/README.md) for frontend features and limitations, and the [backend specification](backend/docs/HELLO_DOC_BACKEND_SPECIFICATION.md) for the API contract.
+See [frontend/README.md](frontend/README.md) for frontend details and [backend/docs/HELLO_DOC_BACKEND_SPECIFICATION.md](backend/docs/HELLO_DOC_BACKEND_SPECIFICATION.md) for the API contract. No Node.js backend, mock database, or fake authentication is included.

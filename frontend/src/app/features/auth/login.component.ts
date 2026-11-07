@@ -19,5 +19,5 @@ export class LoginComponent {
   private fb=inject(FormBuilder); private auth=inject(AuthService); private router=inject(Router);
   passwordVisible=false; busy=false; error='';
   form=this.fb.group({email:['',[Validators.required,Validators.email]],password:['',[Validators.required,Validators.minLength(8)]]});
-  submit():void { this.form.markAllAsTouched();this.error='';if(this.form.invalid)return;this.busy=true;const {email,password}=this.form.getRawValue();this.auth.login({email:email!,password:password!}).subscribe({next:user=>{this.busy=false;const target=user.role==='ADMIN'?'/admin':user.role==='DOCTOR'?'/medecin':'/patient';void this.router.navigateByUrl(target);},error:e=>{this.busy=false;this.error=e.message??'Impossible de vous connecter. Vérifiez vos identifiants puis réessayez.';}}); }
+  submit():void { this.form.markAllAsTouched();this.error='';if(this.form.invalid)return;this.busy=true;const {email,password}=this.form.getRawValue();this.auth.login({email:email!,password:password!}).subscribe({next:user=>{this.busy=false;const target=user.role==='ADMIN'?'/admin/dashboard':user.role==='DOCTOR'?'/medecin':'/patient';void this.router.navigateByUrl(target);},error:e=>{this.busy=false;this.error=e.message??'Impossible de vous connecter. Vérifiez vos identifiants puis réessayez.';}}); }
 }
