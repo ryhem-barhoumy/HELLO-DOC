@@ -1,0 +1,13 @@
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AppointmentService } from '../../core/services/domain.services';
+
+@Component({selector:'app-review',standalone:true,imports:[CommonModule,ReactiveFormsModule,RouterLink],template:`
+<main class="public-page"><header class="site-header"><a class="brand" routerLink="/"><span class="brand-mark">+</span> hello<span>doc</span></a><a class="text-link" routerLink="/patient/historique">← Retour à l’historique</a></header><section class="booking-wrap"><span class="eyebrow">VOTRE RETOUR</span><h1>Évaluer votre consultation</h1><p class="muted">Un avis ne peut être envoyé qu’après un rendez-vous terminé.</p><div class="notice notice-error" *ngIf="error">{{error}}</div><div class="notice notice-info" *ngIf="success">{{success}}</div><form class="booking-card" [formGroup]="form" (ngSubmit)="submit()"><label>Note sur 5<select formControlName="rating"><option [ngValue]="5">★★★★★ — Excellent</option><option [ngValue]="4">★★★★☆ — Très bien</option><option [ngValue]="3">★★★☆☆ — Bien</option><option [ngValue]="2">★★☆☆☆ — Moyen</option><option [ngValue]="1">★☆☆☆☆ — À améliorer</option></select></label><label class="review-question">Recommanderiez-vous ce médecin ?<select formControlName="recommend"><option value="YES">Oui</option><option value="NO">Non</option></select></label><label>Commentaire<textarea rows="5" maxlength="2000" formControlName="comment" placeholder="Partagez votre expérience"></textarea></label><button class="button button-primary submit-button" [disabled]="busy">{{busy?'Envoi…':'Envoyer mon avis'}}</button></form></section></main>`})
+export class ReviewComponent {
+  private route=inject(ActivatedRoute);private router=inject(Router);private appt=inject(AppointmentService);private fb=inject(FormBuilder);private id=this.route.snapshot.paramMap.get('appointmentId')??'';error='';success='';busy=false;
+  form=this.fb.group({rating:[5,Validators.required],recommend:['YES',Validators.required],comment:['',[Validators.maxLength(2000)]]});
+  submit(){this.form.markAllAsTouched();if(this.form.invalid)return;this.busy=true;const v=this.form.getRawValue();this.appt.review(this.id,{rating:v.rating??5,recommend:v.recommend==='NO'?'NO':'YES',comment:v.comment??''}).subscribe({next:()=>{this.busy=false;this.success='Votre avis a été enregistré.';setTimeout(()=>void this.router.navigateByUrl('/patient/historique'),900);},error:e=>{this.busy=false;this.error=e.message;}});}
+}
