@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { LandingComponent } from './features/public/landing.component';
-import { AuthComponent } from './features/auth/auth.component';
+import { RegistrationComponent } from './features/auth/registration.component';
+import { LoginComponent } from './features/auth/login.component';
+import { ForgotPasswordComponent } from './features/auth/forgot-password.component';
 import { PortalComponent } from './features/portal/portal.component';
 import { roleGuard } from './core/guards/auth.guard';
 import { Role } from './core/models/api.models';
@@ -16,9 +18,10 @@ import { AccessDeniedComponent } from './features/public/access-denied.component
 const portal = (role: Role) => ({ component: PortalComponent, canActivate: [roleGuard], data: { roles: [role] } });
 export const routes: Routes = [
   { path: '', component: LandingComponent, title: 'Hello Doc — La santé, plus proche' },
-  { path: 'connexion', component: AuthComponent, title: 'Connexion | Hello Doc', data: { mode: 'login' } },
-  { path: 'inscription/patient', component: AuthComponent, title: 'Inscription patient | Hello Doc', data: { mode: 'patient' } },
-  { path: 'inscription/medecin', component: AuthComponent, title: 'Inscription médecin | Hello Doc', data: { mode: 'doctor' } },
+  { path: 'connexion', component: LoginComponent, title: 'Connexion | Hello Doc' },
+  { path: 'mot-de-passe-oublie', component: ForgotPasswordComponent, title: 'Mot de passe oublié | Hello Doc' },
+  { path: 'inscription/patient', component: RegistrationComponent, title: 'Inscription patient | Hello Doc', data: { mode: 'patient' } },
+  { path: 'inscription/medecin', component: RegistrationComponent, title: 'Inscription médecin | Hello Doc', data: { mode: 'doctor' } },
   { path: 'patient', ...portal('PATIENT') }, { path: 'patient/:area', ...portal('PATIENT') },
   { path: 'patient/medecins/:doctorId', component: DoctorDetailComponent, canActivate:[roleGuard], data:{roles:['PATIENT']}, title:'Profil médecin | Hello Doc' },
   { path: 'patient/reserver/:doctorId', component: BookingComponent, canActivate:[roleGuard], data:{roles:['PATIENT']}, title:'Réserver | Hello Doc' },

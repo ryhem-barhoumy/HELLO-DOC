@@ -1,0 +1,7 @@
+import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
+
+@Component({selector:'app-forgot-password',standalone:true,imports:[RouterLink],template:`
+<main class="auth-layout"><aside class="auth-aside"><a class="brand brand-white" routerLink="/"><span class="brand-mark">+</span> hello<span>doc</span></a><div><span class="eyebrow eyebrow-light">VOTRE COMPTE HELLO DOC</span><h1>Retrouvons<br>l’accès à votre espace.</h1><p>La sécurité de votre compte passe par une procédure de récupération vérifiée.</p><div class="auth-illustration"><span>✚</span><i></i><i></i></div></div><small>© Hello Doc · Votre partenaire santé</small></aside>
+<section class="auth-main"><a class="mobile-brand brand" routerLink="/"><span class="brand-mark">+</span> hello<span>doc</span></a><div class="auth-card recovery-card"><a class="back-link" routerLink="/connexion">← Retour à la connexion</a><span class="eyebrow">RÉCUPÉRATION DU COMPTE</span><h2>Mot de passe oublié ?</h2><p class="muted">La récupération par e-mail n’est pas encore disponible.</p><div class="notice notice-info" role="status">Le backend Spring Boot ne définit pas encore de route de réinitialisation. Aucun e-mail n’a été envoyé et aucun mot de passe n’a été modifié.</div><a class="button button-primary recovery-back" routerLink="/connexion">Retour à la connexion</a></div></section></main>`})
+export class ForgotPasswordComponent {}
