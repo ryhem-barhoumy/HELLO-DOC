@@ -1,0 +1,5 @@
+package com.hellodoc.dto;
+import com.hellodoc.entity.*; import java.util.*;
+public record DoctorProfileDto(UUID id,String firstName,String lastName,String fullName,String email,String phone,String address,String serviceTitle,String specialty,List<String> specialties,String city,String location,String description,int durationMinutes,int pauseMinutes,String workStart,String workEnd,List<Integer> workingDays,List<MedicalServiceDto> services,boolean active) {
+ public static DoctorProfileDto from(Doctor d,List<Integer> days,String workStart,String workEnd,List<MedicalServiceDto> services){var u=d.getUser();var names=d.getSpecialties().stream().map(Specialty::getName).sorted().toList();String full=u.getFirstName()+" "+u.getLastName();return new DoctorProfileDto(d.getId(),u.getFirstName(),u.getLastName(),full,u.getEmail(),u.getPhone(),d.getAddress(),d.getServiceTitle(),names.isEmpty()?null:names.get(0),names,d.getCity(),d.getLocation(),d.getDescription(),d.getDurationMinutes(),d.getPauseMinutes(),workStart,workEnd,days,services,d.isActive());}
+}

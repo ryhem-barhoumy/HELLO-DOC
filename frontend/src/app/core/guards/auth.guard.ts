@@ -8,7 +8,7 @@ export const roleGuard: CanActivateFn = route => {
   const auth = inject(AuthService); const router = inject(Router);
   const allowed = route.data['roles'] as Role[];
   const user = auth.user();
-  const permits = (role: Role, status: string) => (allowed.includes(role) || (role === 'USER' && allowed.includes('PATIENT'))) && (role !== 'DOCTOR' || status === 'APPROVED');
+  const permits = (role: Role, status: string) => (allowed.includes(role) || (role === 'USER' && allowed.includes('PATIENT'))) && (role !== 'DOCTOR' || status === 'ACTIVE');
   if (user) return permits(user.role, user.status) ? true : router.parseUrl('/access-denied');
   return auth.me().pipe(map(session => permits(session.role, session.status) ? true : router.parseUrl('/access-denied')),
     catchError(() => of(router.parseUrl('/connexion'))));

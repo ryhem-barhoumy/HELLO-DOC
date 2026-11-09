@@ -23,7 +23,7 @@ Frontend Angular du prototype Hello Doc, plateforme de rendez-vous entre patient
 - `src/app/features`: pages d’accueil, authentification, patient, médecin, rendez-vous et administration.
 - `src/app/core/services` et `models`: clients HTTP, session et contrats TypeScript.
 - `src/app/core/guards`: contrôle de rôle et blocage des comptes médecin non approuvés.
-- `src/environments/environment.ts`: URL centrale `http://localhost:8080/api`.
+- `src/environments/environment.ts`: URL centrale `http://localhost:8081/api`.
 - Les requêtes utilisent les cookies (`withCredentials`). Le frontend initialise la protection CSRF via `GET /auth/csrf`, lit le cookie `XSRF-TOKEN` et envoie `X-XSRF-TOKEN` sur les méthodes de modification.
 
 ## Backend nécessaire

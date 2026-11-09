@@ -1,0 +1,10 @@
+package com.hellodoc.repository;
+import com.hellodoc.entity.Doctor; import jakarta.persistence.LockModeType; import org.springframework.data.domain.*; import org.springframework.data.jpa.repository.*; import org.springframework.data.repository.query.Param; import java.util.*;
+public interface DoctorRepository extends JpaRepository<Doctor,UUID> {
+ @Override @EntityGraph(attributePaths={"user","application"}) Page<Doctor> findAll(Pageable pageable);
+ Optional<Doctor> findByUserEmailIgnoreCase(String email);
+ @Query(value="select distinct d from Doctor d join d.user u left join d.specialties s where d.active=true and u.status='ACTIVE' and u.role=com.hellodoc.entity.UserRole.DOCTOR and (:q is null or lower(concat(concat(concat(u.firstName,' '),u.lastName),' ')) like lower(concat('%',:q,'%')) or lower(d.serviceTitle) like lower(concat('%',:q,'%')) or lower(d.address) like lower(concat('%',:q,'%'))) and (:city is null or lower(concat(concat(d.city,' '),d.address)) like lower(concat('%',:city,'%'))) and (:specialty is null or s.normalizedName=:specialty)", countQuery="select count(distinct d.id) from Doctor d join d.user u left join d.specialties s where d.active=true and u.status='ACTIVE' and u.role=com.hellodoc.entity.UserRole.DOCTOR and (:q is null or lower(concat(concat(concat(u.firstName,' '),u.lastName),' ')) like lower(concat('%',:q,'%')) or lower(d.serviceTitle) like lower(concat('%',:q,'%')) or lower(d.address) like lower(concat('%',:q,'%'))) and (:city is null or lower(concat(concat(d.city,' '),d.address)) like lower(concat('%',:city,'%'))) and (:specialty is null or s.normalizedName=:specialty)")
+ Page<Doctor> search(@Param("q") String q,@Param("city") String city,@Param("specialty") String specialty,Pageable pageable);
+ Optional<Doctor> findByIdAndActiveTrue(UUID id);
+ @Lock(LockModeType.PESSIMISTIC_WRITE) @EntityGraph(attributePaths={"user","application","specialties"}) @Query("select d from Doctor d where d.id=:id and d.active=true") Optional<Doctor> lockActiveById(@Param("id") UUID id);
+}
