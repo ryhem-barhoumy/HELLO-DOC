@@ -14,6 +14,7 @@ import { RescheduleComponent } from './features/appointments/reschedule.componen
 import { AppointmentDetailComponent } from './features/appointments/appointment-detail.component';
 import { PatientDossierComponent } from './features/doctor/patient-dossier.component';
 import { AccessDeniedComponent } from './features/public/access-denied.component';
+import { AdminDoctorDetailComponent } from './features/admin/admin-doctor-detail.component';
 
 const portal = (role: Role) => ({ component: PortalComponent, canActivate: [roleGuard], data: { roles: [role] } });
 export const routes: Routes = [
@@ -26,8 +27,8 @@ export const routes: Routes = [
   { path: 'patient/medecins/:doctorId', component: DoctorDetailComponent, canActivate:[roleGuard], data:{roles:['PATIENT']}, title:'Profil médecin | Hello Doc' },
   { path: 'patient/reserver/:doctorId', component: BookingComponent, canActivate:[roleGuard], data:{roles:['PATIENT']}, title:'Réserver | Hello Doc' },
   { path: 'patient/avis/:appointmentId', component: ReviewComponent, canActivate:[roleGuard], data:{roles:['PATIENT']}, title:'Donner un avis | Hello Doc' },
-  { path: 'patient/rendez-vous/:appointmentId', component:AppointmentDetailComponent, canActivate:[roleGuard], data:{roles:['PATIENT']}, title:'Rendez-vous | Hello Doc' },
   { path: 'patient/rendez-vous/:appointmentId/reprogrammer', component:RescheduleComponent, canActivate:[roleGuard], data:{roles:['PATIENT']}, title:'Reprogrammer un rendez-vous | Hello Doc' },
+  { path: 'patient/rendez-vous/:appointmentId', component:AppointmentDetailComponent, canActivate:[roleGuard], data:{roles:['PATIENT']}, title:'Rendez-vous | Hello Doc' },
   { path: 'medecin', ...portal('DOCTOR') }, { path: 'medecin/:area', ...portal('DOCTOR') },
   { path: 'medecin/rendez-vous/:appointmentId/consultation', component:ConsultationNoteComponent, canActivate:[roleGuard], data:{roles:['DOCTOR']}, title:'Fiche de consultation | Hello Doc' },
   { path: 'medecin/rendez-vous/:appointmentId/reprogrammer', component:RescheduleComponent, canActivate:[roleGuard], data:{roles:['DOCTOR']}, title:'Reprogrammer un rendez-vous | Hello Doc' },
@@ -35,6 +36,7 @@ export const routes: Routes = [
   { path: 'medecin/patients/:patientId', component:PatientDossierComponent, canActivate:[roleGuard], data:{roles:['DOCTOR']}, title:'Dossier patient | Hello Doc' },
   { path: 'admin', redirectTo: 'admin/dashboard', pathMatch: 'full' },
   { path: 'admin/dashboard', component: PortalComponent, canActivate:[adminGuard], data:{roles:['ADMIN']}, title:'Administration | Hello Doc' },
+  { path: 'admin/medecins/:doctorId', component: AdminDoctorDetailComponent, canActivate:[adminGuard], data:{roles:['ADMIN']}, title:'Détail médecin | Hello Doc' },
   { path: 'admin/rendez-vous/:appointmentId', component:AppointmentDetailComponent, canActivate:[adminGuard], title:'Rendez-vous | Hello Doc' },
   { path: 'admin/:area', component: PortalComponent, canActivate:[adminGuard], data:{roles:['ADMIN']}, title:'Administration | Hello Doc' },
   { path: 'access-denied', component: AccessDeniedComponent, title: 'Accès refusé | Hello Doc' },

@@ -6,6 +6,9 @@ import com.hellodoc.entity.UserAccount;
 import com.hellodoc.entity.DoctorApplication;
 import com.hellodoc.repository.UserRepository;
 import com.hellodoc.repository.DoctorApplicationRepository;
+import com.hellodoc.service.DoctorApprovalService;
+import com.hellodoc.service.AdminDirectoryService;
+import com.hellodoc.dto.DoctorApplicationSummary;
 import com.hellodoc.security.AccountDetailsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +37,8 @@ class AdminSecurityTest {
  @MockBean UserRepository users;
  @MockBean DoctorApplicationRepository applications;
  @MockBean AccountDetailsService accountDetails;
+ @MockBean DoctorApprovalService approvals;
+ @MockBean AdminDirectoryService directory;
 
  @Test void anonymousRequestGets401() throws Exception { mvc.perform(get("/api/admin/dashboard")).andExpect(status().isUnauthorized()); }
  @Test @WithMockUser(roles="USER") void normalUserGets403() throws Exception { mvc.perform(get("/api/admin/dashboard")).andExpect(status().isForbidden()); }
@@ -41,15 +46,20 @@ class AdminSecurityTest {
   when(users.countByRoleAndStatus(UserRole.USER,"ACTIVE")).thenReturn(2L); when(users.countByRole(UserRole.PATIENT)).thenReturn(0L); when(users.countByRole(UserRole.DOCTOR)).thenReturn(1L); when(applications.countByStatus("PENDING")).thenReturn(1L);
   mvc.perform(get("/api/admin/dashboard")).andExpect(status().isOk());
  }
+ @Test @WithMockUser(roles="ADMIN") void adminDirectoryEndpointsReadPersistedDirectories() throws Exception {
+  when(directory.doctors(any(int.class),any(int.class))).thenReturn(org.springframework.data.domain.Page.empty());
+  when(directory.patients(any(int.class),any(int.class))).thenReturn(org.springframework.data.domain.Page.empty());
+  mvc.perform(get("/api/admin/doctors/directory")).andExpect(status().isOk());
+  mvc.perform(get("/api/admin/patients")).andExpect(status().isOk());
+ }
+ @Test @WithMockUser(roles="USER") void normalUserCannotReadAdminDirectories() throws Exception {
+  mvc.perform(get("/api/admin/doctors/directory")).andExpect(status().isForbidden());
+  mvc.perform(get("/api/admin/patients")).andExpect(status().isForbidden());
+ }
  @Test @WithMockUser(roles="ADMIN") void adminApprovalPromotesPersistedPendingAccount() throws Exception {
-  UUID id=UUID.randomUUID(); DoctorApplication application=mock(DoctorApplication.class); UserAccount user=mock(UserAccount.class);
-  when(applications.findById(id)).thenReturn(Optional.of(application)); when(application.getStatus()).thenReturn("PENDING"); when(application.getUser()).thenReturn(user);
-  when(application.getId()).thenReturn(id); when(user.getFirstName()).thenReturn("Doctor"); when(user.getLastName()).thenReturn("Example");
-  when(application.getServiceTitle()).thenReturn("Dr Example"); when(application.getSpecialty()).thenReturn("Cardiology"); when(application.getLicenseNumber()).thenReturn("LIC-1");
-  when(application.getCity()).thenReturn("Tunis"); when(application.getPracticeAddress()).thenReturn("Clinic");
-  doAnswer(invocation->{when(application.getStatus()).thenReturn((String)invocation.getArgument(0));return null;}).when(application).decide(any(),any());
+  UUID id=UUID.randomUUID();when(approvals.approve(eq(id),any())).thenReturn(new DoctorApplicationSummary(id,"Doctor","Example","d@example.com","555","Doctor Example","Doctor Example","Dr Example","Cardiology","LIC-1","Tunis","Clinic","Clinic","Home","APPROVED","",true));
   mvc.perform(post("/api/admin/doctors/"+id+"/approve").with(csrf()).contentType("application/json").content("{}"))
    .andExpect(status().isOk());
-  verify(user).setRoleAndStatus(UserRole.DOCTOR,"APPROVED"); verify(application).decide(eq("APPROVED"),eq(null));
+  verify(approvals).approve(eq(id),any());
  }
 }

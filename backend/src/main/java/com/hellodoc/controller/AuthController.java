@@ -55,7 +55,7 @@ public class AuthController {
   var cookie=new jakarta.servlet.http.Cookie("JSESSIONID",""); cookie.setPath("/"); cookie.setMaxAge(0); cookie.setHttpOnly(true); response.addCookie(cookie); return ResponseEntity.noContent().build();
  }
  @PostMapping("/patients/registrations") @ResponseStatus(HttpStatus.CREATED) public Map<String,Object> registerPatient(@Valid @RequestBody RegistrationRequest body){return registrationResult(accounts.register(body));}
- @PostMapping("/doctors/registrations") @ResponseStatus(HttpStatus.CREATED) public Map<String,Object> registerDoctor(@Valid @RequestBody DoctorRegistrationRequest body){var application=accounts.registerDoctor(body);return Map.of("id",application.getId(),"status",application.getStatus());}
+ @PostMapping(value="/doctors/registrations",consumes=org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE) @ResponseStatus(HttpStatus.CREATED) public Map<String,Object> registerDoctor(@Valid @RequestPart("registration") DoctorRegistrationRequest body,org.springframework.web.multipart.MultipartHttpServletRequest multipart){var documents=multipart.getFiles("document");if(documents.size()!=1)throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,"Joignez exactement une attestation d’inscription à l’Ordre.");var application=accounts.registerDoctor(body,documents.get(0));return Map.of("id",application.getId(),"status",application.getStatus());}
  private Map<String,Object> registrationResult(UserAccount u){return Map.of("id",u.getId(),"status",u.getStatus());}
  private SessionUser current(Authentication auth){return SessionUser.from(users.findByEmailIgnoreCase(auth.getName()).orElseThrow());}
 }

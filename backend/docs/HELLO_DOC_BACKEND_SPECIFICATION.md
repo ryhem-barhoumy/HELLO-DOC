@@ -1,6 +1,6 @@
 # Hello Doc — Spring Boot Backend Specification
 
-**Status:** partially implemented. The Maven backend provides MySQL account persistence, BCrypt, environment-based one-time admin seeding, session login/logout/restore, CSRF, password change, public patient registration as `USER`, persisted pending doctor applications that become `DOCTOR` only after admin approval, and role-protected `/admin/me`, `/admin/dashboard`, and doctor-approval endpoints. Remaining business endpoints in this document are the target contract and are not yet implemented. **Base URL:** `http://localhost:8080/api`. **Database:** MySQL through Laragon. The Angular workspace accepts active `USER` accounts as patients and approved `DOCTOR` accounts for the doctor area.
+**Status:** account/session and profile foundations, specialty discovery, weekly availability, absences, appointment booking and management, persisted notifications, and post-consultation reviews are implemented. Patient and active-doctor dashboards expose persisted appointment and unread-notification data. Administrative appointment analytics, activity logs, and notification management are outside this implemented scope. **Base URL:** `http://localhost:8081/api`. **Database:** MySQL through Laragon on port `3308`. The Angular workspace accepts active `USER` accounts as patients and active `DOCTOR` accounts for the doctor area.
 
 ## 1. Product and frontend contract
 
@@ -26,15 +26,15 @@ The backend owns identity, authorization, validation, persistence, scheduling, d
 | Patient notifications | Alerts and booking updates | Read, mark as read | PATIENT | `GET /notifications`; `PATCH /notifications/{id}/read`. |
 | Patient profile `/patient/profil` | Contact/profile information | Edit permitted fields | PATIENT | `GET/PUT /patients/me`; reject role/status/email privilege edits. |
 | Patient settings `/patient/parametres` | Account preferences and security actions | Update notification preferences; request account deactivation/password change | PATIENT | Proposed `GET/PUT /patients/me/preferences`, `POST /auth/password`; confirm before destructive account action. |
-| Doctor overview `/medecin` | Workday summary, next consultations and appointment counts | Open schedule/appointment modules | APPROVED DOCTOR | `GET /doctors/me/dashboard`; status counts and next appointments. Pending/rejected/inactive accounts denied. |
-| Doctor appointments and calendar | Day/week/month appointment schedule and status | Filter dates/status, inspect, confirm, cancel or complete where policy permits | APPROVED DOCTOR | `GET /doctors/me/appointments?from=&to=&status=&page=`; `PATCH /appointments/{id}/status`. |
-| Availability | Published recurring/dated slots | Add/update/delete slot; duration and timezone | APPROVED DOCTOR | `GET/POST/PUT/DELETE /doctors/me/availability[/{id}]`; prevent overlap with appointments/absence. |
-| Absences | Declared time off and affected appointments | Create absence, review proposed rescheduling, cancel if policy permits | APPROVED DOCTOR | `GET/POST /doctors/me/absences`; `POST /absences/{id}/reschedule-plan`; `POST /appointments/{id}/reschedule`. Notify affected patients. |
-| Doctor patient list | Patients with a valid care relationship/appointment | Search own patient list; open limited dossier | APPROVED DOCTOR | `GET /doctors/me/patients`; `GET /doctors/me/patients/{patientId}`. Enforce relationship and minimum necessary fields. |
-| Consultation note | Record clinical note for own appointment | Save note, update within policy | APPROVED DOCTOR | `POST/PUT /appointments/{id}/consultation-note`; strict authorization/audit; excluded from admin DTOs. |
-| Doctor reviews | Reviews associated with own profile | Read and optionally respond if product policy allows | APPROVED DOCTOR | `GET /doctors/me/reviews`; optional response endpoint needs product decision. |
-| Doctor notifications | Appointment, absence and admin decision messages | Mark read | APPROVED DOCTOR / PENDING registration notices | `GET /notifications`; `PATCH /notifications/{id}/read`. Pending doctor may only access registration status/notifications. |
-| Doctor profile/settings | Professional details and preferences | Edit authorized fields; request account change | APPROVED DOCTOR | `GET/PUT /doctors/me`; credentials and approval status are server-managed. |
+| Doctor overview `/medecin` | Workday summary, next consultations and appointment counts | Open schedule/appointment modules | ACTIVE DOCTOR | `GET /doctors/me/dashboard`; status counts and next appointments. Pending/rejected/inactive accounts denied. |
+| Doctor appointments and calendar | Day/week/month appointment schedule and status | Filter dates/status, inspect, confirm, cancel or complete where policy permits | ACTIVE DOCTOR | `GET /doctors/me/appointments?from=&to=&status=&page=`; `PATCH /appointments/{id}/status`. |
+| Availability | Published recurring/dated slots | Add/update/delete slot; duration and timezone | ACTIVE DOCTOR | `GET/POST/PUT/DELETE /doctors/me/availability[/{id}]`; prevent overlap with appointments/absence. |
+| Absences | Declared time off and affected appointments | Create absence, review proposed rescheduling, cancel if policy permits | ACTIVE DOCTOR | `GET/POST /doctors/me/absences`; `POST /absences/{id}/reschedule-plan`; `POST /appointments/{id}/reschedule`. Notify affected patients. |
+| Doctor patient list | Patients with a valid care relationship/appointment | Search own patient list; open limited dossier | ACTIVE DOCTOR | `GET /doctors/me/patients`; `GET /doctors/me/patients/{patientId}`. Enforce relationship and minimum necessary fields. |
+| Consultation note | Record clinical note for own appointment | Save note, update within policy | ACTIVE DOCTOR | `POST/PUT /appointments/{id}/consultation-note`; strict authorization/audit; excluded from admin DTOs. |
+| Doctor reviews | Reviews associated with own profile | Read and optionally respond if product policy allows | ACTIVE DOCTOR | `GET /doctors/me/reviews`; optional response endpoint needs product decision. |
+| Doctor notifications | Appointment, absence and admin decision messages | Mark read | ACTIVE DOCTOR / PENDING registration notices | `GET /notifications`; `PATCH /notifications/{id}/read`. Pending doctor may only access registration status/notifications. |
+| Doctor profile/settings | Professional details and preferences | Edit authorized fields; request account change | ACTIVE DOCTOR | `GET/PUT /doctors/me`; credentials and approval status are server-managed. |
 | Admin overview `/admin` | Counts for patients, doctors, pending approvals and appointments; recent activity | Review queues and navigate modules | ADMIN | `GET /admin/dashboard`; server-computed counts with as-of time; no consultation details. |
 | Admin doctors | Provider directory and account state | Search, status/specialty filters, inspect safe profile, activate/deactivate | ADMIN | `GET /admin/doctors`; `GET /admin/doctors/{id}`; `PATCH /admin/doctors/{id}/status`. |
 | Doctor approvals | Pending requests | Inspect submitted professional data, approve or reject with reason | ADMIN | `GET /admin/doctors?status=PENDING`; `POST /admin/doctors/{id}/approve` or `/reject`; atomic decision, audit and notification. |
@@ -151,12 +151,12 @@ Patient registration request: `{ "firstName":"Maya", "lastName":"Ben Salah", "em
 | `GET /doctors` | Public or PATIENT | Query `q,specialty,city,availableOn,page,size,sort`; only APPROVED and active providers; paginated safe summary. `availableOn` must test a real bookable slot, not just a usual workday. |
 | `GET /doctors/{doctorId}` | Public or PATIENT | Public profile with displayed title, specialty, description, location, duration, working days/hours, service names/prices and approved public reviews; omit private email/license documents. 404 if not published. |
 | `GET /doctors/{doctorId}/availability` | Public or PATIENT | `from,to,timezone`; return bookable slots only; bounded date range. |
-| `GET /doctors/me` / `PUT /doctors/me` | APPROVED DOCTOR | Safe own profile. Update permits name/contact, service title, specialty, duration, work hours/days, break, location, description and service list; require `currentPassword` for the profile edit as in the legacy flow. License changes require re-review. |
-| `GET /doctors/me/dashboard` | APPROVED DOCTOR | `{todayCount,pendingCount,confirmedCount,completedCount,nextAppointments:[]}`. |
-| `GET /doctors/me/appointments` | APPROVED DOCTOR | Query `from,to,status,page,size`; own doctor appointments only. |
-| `GET /doctors/me/patients` | APPROVED DOCTOR | Paginated patients with prior/active appointment relationship only; minimal fields. |
-| `GET /doctors/me/patients/{patientId}` | APPROVED DOCTOR | Dossier summary only if care relationship and policy authorize; otherwise 404/403. |
-| `GET /doctors/me/reviews` | APPROVED DOCTOR | Published reviews for this doctor, paginated. |
+| `GET /doctors/me` / `PUT /doctors/me` | ACTIVE DOCTOR | Safe own profile. Update permits name/contact, service title, specialty, duration, work hours/days, break, location, description and service list; require `currentPassword` for the profile edit as in the legacy flow. License changes require re-review. |
+| `GET /doctors/me/dashboard` | ACTIVE DOCTOR | `{todayCount,pendingCount,confirmedCount,completedCount,nextAppointments:[]}`. |
+| `GET /doctors/me/appointments` | ACTIVE DOCTOR | Query `from,to,status,page,size`; own doctor appointments only. |
+| `GET /doctors/me/patients` | ACTIVE DOCTOR | Paginated patients with prior/active appointment relationship only; minimal fields. |
+| `GET /doctors/me/patients/{patientId}` | ACTIVE DOCTOR | Dossier summary only if care relationship and policy authorize; otherwise 404/403. |
+| `GET /doctors/me/reviews` | ACTIVE DOCTOR | Published reviews for this doctor, paginated. |
 
 ### 4.4 Appointments
 
@@ -176,7 +176,7 @@ Appointment create JSON: `{ "doctorId":"uuid", "availabilityId":"uuid", "startsA
 | `GET /appointments/{id}/reschedule-options` | Owning PATIENT or assigned DOCTOR | Return available slots for the same provider after absence/conflict; enforce ownership. |
 | `POST /appointments/{id}/reschedule` | Owning PATIENT or assigned DOCTOR per policy | `{ "availabilityId":"uuid", "reason":"…" }`; lock destination, retain old appointment/status history, change to `RESCHEDULED` or new pending booking by agreed policy, notify both parties. |
 | `POST /appointments/{id}/review` | Owning PATIENT | `{ "rating":5,"recommend":"YES","comment":"…" }`; completed appointment only. One review per appointment; permit editing that review with the same endpoint or `PUT`. |
-| `GET/PUT /appointments/{id}/consultation-note` | Assigned APPROVED DOCTOR | `{ "resume":"…","observation":"…","treatment":"…","nextCheck":"2026-05-20","privateNote":"…" }`; only after completed appointment; highly sensitive, strict audit and access checks. A changed next-check date creates an in-app patient notification with an action link to choose a slot. |
+| `GET/PUT /appointments/{id}/consultation-note` | Assigned ACTIVE DOCTOR | `{ "resume":"…","observation":"…","treatment":"…","nextCheck":"2026-05-20","privateNote":"…" }`; only after completed appointment; highly sensitive, strict audit and access checks. A changed next-check date creates an in-app patient notification with an action link to choose a slot. |
 
 Suggested status transitions matching the report: `PENDING → CONFIRMED | CANCELLED | TO_RESCHEDULE`; `CONFIRMED → COMPLETED | CANCELLED | TO_RESCHEDULE`; a doctor-created absence sets overlapping active appointments to `TO_RESCHEDULE`. Completing an explicit reschedule may create a linked replacement appointment in `PENDING` while retaining the original for history, or transition the original to `RESCHEDULED`; choose one transactional policy. `COMPLETED` and `CANCELLED` are terminal for ordinary actions. A new patient booking starts `PENDING` and requires doctor confirmation.
 
@@ -184,15 +184,15 @@ Suggested status transitions matching the report: `PENDING → CONFIRMED | CANCE
 
 | Method / path | Access | Contract |
 |---|---|---|
-| `GET /doctors/me/availability` | APPROVED DOCTOR | List own availability; optionally query from/to. |
-| `POST /doctors/me/availability` | APPROVED DOCTOR | `{ "startsAt":"…", "endsAt":"…", "timezone":"Africa/Tunis" }`; 201; reject overlap/past slots. The doctor profile’s duration, workdays, work interval and pause are the source for generated slots; avoid incompatible manual slots. |
-| `PUT /doctors/me/availability/{id}` | APPROVED DOCTOR | Update own unbooked slot; 409 if appointment conflicts. |
-| `DELETE /doctors/me/availability/{id}` | APPROVED DOCTOR | 204 only if no confirmed booking; otherwise 409. |
-| `GET /doctors/me/absences` | APPROVED DOCTOR | Own absence intervals and rescheduling outcome summary. |
-| `POST /doctors/me/absences` | APPROVED DOCTOR | `{ "startsAt":"…", "endsAt":"…", "reason":"…", "comment":"…" }`; block unreserved slots, set overlapping pending/confirmed appointments to `TO_RESCHEDULE`, notify affected patients and return affected appointment IDs. Do not silently cancel or move appointments. |
+| `GET /doctors/me/availability` | ACTIVE DOCTOR | List own availability; optionally query from/to. |
+| `POST /doctors/me/availability` | ACTIVE DOCTOR | `{ "startsAt":"…", "endsAt":"…", "timezone":"Africa/Tunis" }`; 201; reject overlap/past slots. The doctor profile’s duration, workdays, work interval and pause are the source for generated slots; avoid incompatible manual slots. |
+| `PUT /doctors/me/availability/{id}` | ACTIVE DOCTOR | Update own unbooked slot; 409 if appointment conflicts. |
+| `DELETE /doctors/me/availability/{id}` | ACTIVE DOCTOR | 204 only if no confirmed booking; otherwise 409. |
+| `GET /doctors/me/absences` | ACTIVE DOCTOR | Own absence intervals and rescheduling outcome summary. |
+| `POST /doctors/me/absences` | ACTIVE DOCTOR | `{ "startsAt":"…", "endsAt":"…", "reason":"…", "comment":"…" }`; block unreserved slots, set overlapping pending/confirmed appointments to `TO_RESCHEDULE`, notify affected patients and return affected appointment IDs. Do not silently cancel or move appointments. |
 | `POST /absences/{id}/reschedule-plan` | Assigned DOCTOR | `{ "strategy":"PROPOSE_ALTERNATIVES" }`; return affected booking IDs and candidate slots, never auto-commit. |
 | `POST /appointments/{id}/reschedule` | Assigned parties | Select an offered slot and explicitly confirm. |
-| `DELETE /doctors/me/absences/{id}` | APPROVED DOCTOR | Mark absence cancelled if policy allows; reopen only future unreserved slots blocked solely by that absence. Previously affected appointments remain `TO_RESCHEDULE` and are not restored automatically. |
+| `DELETE /doctors/me/absences/{id}` | ACTIVE DOCTOR | Mark absence cancelled if policy allows; reopen only future unreserved slots blocked solely by that absence. Previously affected appointments remain `TO_RESCHEDULE` and are not restored automatically. |
 
 ### 4.6 Reviews and notifications
 
@@ -226,7 +226,7 @@ Suggested status transitions matching the report: `PENDING → CONFIRMED | CANCE
 ## 5. Doctor approval workflow
 
 1. Public doctor registration validates required identity, specialty, license, city/address, consent, password and unique email/license.
-2. In one transaction create User(role `DOCTOR`, account status `PENDING`) and Doctor(approval status `PENDING`, inactive until approved). Hash password with BCrypt/Argon2 encoder.
+2. In one transaction create User(role `USER`, account status `PENDING`) and a Doctor profile with pending approval and Doctor(approval status `PENDING`, inactive until approved). Hash password with BCrypt/Argon2 encoder.
 3. Create a notification for administrators; if no notification routing exists yet, the pending query remains authoritative.
 4. `POST /auth/login` may establish a limited pending registration session, but pending users must not access any doctor business endpoint. Provide a status/notice endpoint if they need to check review state.
 5. Admin reads pending queue, inspects submitted credentials and decides. Approval/rejection must lock/compare status to prevent concurrent decisions.
@@ -291,13 +291,13 @@ The Angular code defines `AuthService`, `ApiService`, `PatientService`, `DoctorS
 | Patient appointments/history | List/filter | PatientService.appointments | `GET /appointments/mine` | AppointmentController → AppointmentService → Appointment | PATIENT |
 | Patient profile/settings | Read/edit | PatientService.profile/updateProfile | `GET/PUT /patients/me`, preference routes | PatientController → PatientService → Patient | PATIENT |
 | Patient notifications | List/read | NotificationService | `GET /notifications`, `PATCH /notifications/{id}/read` | NotificationController → NotificationService → Notification | PATIENT |
-| Doctor overview | Dashboard | ApiService GET `/doctors/me/dashboard` | `GET /doctors/me/dashboard` | DoctorController → DoctorService → Doctor, Appointment | APPROVED DOCTOR |
-| Doctor appointments/calendar | Browse/change state | DoctorService.appointments | `GET /doctors/me/appointments`, `PATCH /appointments/{id}/status` | AppointmentController → AppointmentService → Appointment | APPROVED DOCTOR |
-| Doctor availability | Manage slots | DoctorService.availability | `/doctors/me/availability` CRUD | AvailabilityController → SchedulingService → Availability | APPROVED DOCTOR |
-| Doctor absence | Declare/reschedule | DoctorService.absences | `/doctors/me/absences`, reschedule plan | AbsenceController → AbsenceService → Absence, Appointment | APPROVED DOCTOR |
-| Doctor patients/dossier | Search own patients | ApiService | `/doctors/me/patients` | DoctorController → DoctorService → Patient, Appointment | APPROVED DOCTOR |
-| Doctor consultation | Write note | AppointmentService (extend) | appointment consultation-note route | AppointmentController → AppointmentService → ConsultationNote | APPROVED DOCTOR |
-| Doctor reviews/profile | Browse/edit | DoctorService.profile | `/doctors/me/reviews`, `/doctors/me` | DoctorController → DoctorService → Review, Doctor | APPROVED DOCTOR |
+| Doctor overview | Dashboard | ApiService GET `/doctors/me/dashboard` | `GET /doctors/me/dashboard` | DoctorController → DoctorService → Doctor, Appointment | ACTIVE DOCTOR |
+| Doctor appointments/calendar | Browse/change state | DoctorService.appointments | `GET /doctors/me/appointments`, `PATCH /appointments/{id}/status` | AppointmentController → AppointmentService → Appointment | ACTIVE DOCTOR |
+| Doctor availability | Manage slots | DoctorService.availability | `/doctors/me/availability` CRUD | AvailabilityController → SchedulingService → Availability | ACTIVE DOCTOR |
+| Doctor absence | Declare/reschedule | DoctorService.absences | `/doctors/me/absences`, reschedule plan | AbsenceController → AbsenceService → Absence, Appointment | ACTIVE DOCTOR |
+| Doctor patients/dossier | Search own patients | ApiService | `/doctors/me/patients` | DoctorController → DoctorService → Patient, Appointment | ACTIVE DOCTOR |
+| Doctor consultation | Write note | AppointmentService (extend) | appointment consultation-note route | AppointmentController → AppointmentService → ConsultationNote | ACTIVE DOCTOR |
+| Doctor reviews/profile | Browse/edit | DoctorService.profile | `/doctors/me/reviews`, `/doctors/me` | DoctorController → DoctorService → Review, Doctor | ACTIVE DOCTOR |
 | Admin overview | Statistics | AdminService.dashboard | `GET /admin/dashboard` | AdminController → AdminService → aggregate repositories | ADMIN |
 | Admin doctors | Search/manage | AdminService.doctors/setAccountState | `/admin/doctors` | AdminController → AdminService → Doctor, User | ADMIN |
 | Admin approvals | Approve/reject | AdminService.decideDoctor | `/admin/doctors/{id}/approve|reject` | AdminController → DoctorApprovalService → Doctor, ActivityLog, Notification | ADMIN |
@@ -309,7 +309,7 @@ The Angular code defines `AuthService`, `ApiService`, `PatientService`, `DoctorS
 
 ## 9. Development-only seed accounts
 
-Use a `dev` profile-only `CommandLineRunner` or explicit local SQL migration guarded by `@Profile("dev")`. Read demo credentials from local environment variables or generate random passwords and print them once only in local console; hash with the configured `PasswordEncoder`. Make seed idempotent by normalized email, create one account for each `ADMIN`, approved `DOCTOR`, and `PATIENT`, and use obviously non-production addresses. Disable the runner in test/production profiles; add a startup assertion that refuses demo seed flags in production. Never commit secrets, never embed accounts in Angular, and never ship seeded credentials to production.
+Use a `dev` profile-only `CommandLineRunner` or explicit local SQL migration guarded by `@Profile("dev")`. Read demo credentials from local environment variables or generate random passwords and print them once only in local console; hash with the configured `PasswordEncoder`. Make seed idempotent by normalized email, create one account for each `ADMIN`, active `DOCTOR`, and `PATIENT`, and use obviously non-production addresses. Disable the runner in test/production profiles; add a startup assertion that refuses demo seed flags in production. Never commit secrets, never embed accounts in Angular, and never ship seeded credentials to production.
 
 ## 10. Backend delivery roadmap
 
@@ -378,3 +378,9 @@ Use a `dev` profile-only `CommandLineRunner` or explicit local SQL migration gua
 8. Confirm the DTO envelope, CSRF bootstrap implementation, cookie domain/SameSite policy, origin/port, page numbering (0-based here), and expected search/sort names.
 
 Treat assumptions as proposals until both developers agree. The frontend is not a substitute for production security, server authorization, privacy assessment, accessibility review, or backend integration QA.
+
+#### Justificatif d’inscription médecin
+
+L’inscription médecin reste publique et conserve ses champs métier dans la partie JSON `registration`, envoyée avec un unique fichier `document`. Une attestation d’inscription à l’Ordre avec cachet est obligatoire; seuls les contenus PDF, JPG/JPEG ou PNG de 5 Mo maximum sont acceptés. Le binaire est stocké sous un identifiant aléatoire dans un répertoire privé configurable par `HELLODOC_DOCUMENTS_DIR`. Seul un administrateur peut le télécharger via `GET /api/admin/doctors/{applicationId}/document`.
+
+Après l’approbation, le backend publie un événement transactionnel et envoie un message de confirmation au médecin après commit. La livraison nécessite un relais SMTP : `HELLODOC_EMAIL_ENABLED=true`, `HELLODOC_SMTP_HOST`, `HELLODOC_SMTP_PORT`, `HELLODOC_SMTP_USERNAME`, `HELLODOC_SMTP_PASSWORD`, `HELLODOC_EMAIL_FROM`, et éventuellement `HELLODOC_FRONTEND_URL`. Le message n’inclut aucun mot de passe. Une erreur d’envoi ne fait pas échouer l’approbation.

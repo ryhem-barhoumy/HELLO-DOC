@@ -25,6 +25,8 @@ public class UserAccount {
     public UUID getId(){return id;} public String getFirstName(){return firstName;} public String getLastName(){return lastName;} public String getPhone(){return phone;} public String getAddress(){return address;}
     public String getEmail(){return email;} public String getPasswordHash(){return passwordHash;} public UserRole getRole(){return role;} public String getStatus(){return status;}
     public void updateProfile(String firstName,String lastName){this.firstName=firstName;this.lastName=lastName;}
+    public void updateContactProfile(String firstName,String lastName,String phone,String address){this.firstName=firstName;this.lastName=lastName;this.phone=phone;this.address=address;}
     public void changePassword(String passwordHash){this.passwordHash=passwordHash;}
     public void setRoleAndStatus(UserRole role,String status){this.role=role;this.status=status;}
+    public void setStatus(String status){this.status=status;}
 }

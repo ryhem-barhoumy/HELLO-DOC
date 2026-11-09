@@ -2,6 +2,8 @@ package com.hellodoc.config;
 
 import com.hellodoc.security.AccountDetailsService;
 import com.hellodoc.security.SpaCsrfTokenRequestHandler;
+import com.hellodoc.dto.ApiError;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -26,7 +28,7 @@ import java.util.List;
 public class SecurityConfig {
  @Bean PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
  @Bean AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception{return config.getAuthenticationManager();}
- @Bean SecurityFilterChain security(HttpSecurity http, AccountDetailsService users) throws Exception {
+ @Bean SecurityFilterChain security(HttpSecurity http, AccountDetailsService users,ObjectMapper mapper) throws Exception {
   http.userDetailsService(users)
    .cors(cors->{})
    .csrf(csrf->csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()).csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
@@ -34,15 +36,17 @@ public class SecurityConfig {
    .formLogin(form->form.disable()).httpBasic(basic->basic.disable())
    .authorizeHttpRequests(auth->auth
     .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
+   .requestMatchers(HttpMethod.GET,"/api/specialties","/api/doctors","/api/doctors/*","/api/doctors/*/slots").permitAll()
     .requestMatchers(HttpMethod.GET,"/api/auth/csrf","/api/auth/me").permitAll()
     .requestMatchers(HttpMethod.POST,"/api/auth/login","/api/patients/registrations","/api/doctors/registrations").permitAll()
     .requestMatchers("/api/admin/**").hasRole("ADMIN")
     .requestMatchers("/api/**").authenticated()
     .anyRequest().permitAll())
-   .exceptionHandling(ex->ex.authenticationEntryPoint((request,response,error)->response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
-    .accessDeniedHandler((request,response,error)->response.sendError(HttpServletResponse.SC_FORBIDDEN)));
+   .exceptionHandling(ex->ex.authenticationEntryPoint((request,response,error)->writeSecurityError(response,mapper,401,"UNAUTHORIZED","Authentification requise."))
+    .accessDeniedHandler((request,response,error)->writeSecurityError(response,mapper,403,"FORBIDDEN","Accès refusé.")));
   return http.build();
  }
+ private void writeSecurityError(HttpServletResponse response,ObjectMapper mapper,int status,String code,String message)throws java.io.IOException{response.setStatus(status);response.setCharacterEncoding("UTF-8");response.setContentType("application/json");mapper.writeValue(response.getOutputStream(),ApiError.of(status,code,message,java.util.Map.of()));}
  @Bean CorsConfigurationSource corsConfigurationSource(@Value("${hellodoc.frontend-origin}") String origin){
   CorsConfiguration config=new CorsConfiguration(); config.setAllowedOrigins(List.of(origin));
   config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));

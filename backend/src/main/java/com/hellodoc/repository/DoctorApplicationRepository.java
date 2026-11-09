@@ -7,5 +7,6 @@ import java.util.UUID;
 
 public interface DoctorApplicationRepository extends JpaRepository<DoctorApplication,UUID> {
  long countByStatus(String status);
+ boolean existsByUser_Id(UUID userId);
  List<DoctorApplication> findByStatusOrderByIdDesc(String status);
 }

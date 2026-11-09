@@ -13,7 +13,7 @@ import { Appointment, AppointmentRequest, DoctorSummary, Page, RegisterDoctorReq
 }
 @Injectable({ providedIn: 'root' }) export class DoctorService {
   private api = inject(ApiService);
-  register(body: RegisterDoctorRequest) { return this.api.get<unknown>('/auth/csrf').pipe(switchMap(()=>this.api.post('/doctors/registrations', body))); }
+  register(body: RegisterDoctorRequest, document: File) { const form=new FormData(); form.append('registration',new Blob([JSON.stringify(body)],{type:'application/json'})); form.append('document',document,document.name); return this.api.get<unknown>('/auth/csrf').pipe(switchMap(()=>this.api.post('/doctors/registrations',form))); }
   profile() { return this.api.get('/doctors/me'); }
   appointments(query?: Record<string, string | number | undefined>) { return this.api.get<Page<Appointment>>('/doctors/me/appointments', query); }
   availability() { return this.api.get('/doctors/me/availability'); }

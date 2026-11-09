@@ -1,0 +1,3 @@
+package com.hellodoc.repository;
+import com.hellodoc.entity.Patient; import org.springframework.data.domain.Page; import org.springframework.data.domain.Pageable; import org.springframework.data.jpa.repository.EntityGraph; import org.springframework.data.jpa.repository.JpaRepository; import java.util.*;
+public interface PatientRepository extends JpaRepository<Patient,UUID> { Optional<Patient> findByUserEmailIgnoreCase(String email); Optional<Patient> findByUserId(UUID id); boolean existsByUserId(UUID id); @Override @EntityGraph(attributePaths="user") Page<Patient> findAll(Pageable pageable); }

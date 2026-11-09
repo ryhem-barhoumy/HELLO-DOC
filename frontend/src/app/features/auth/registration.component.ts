@@ -1,9 +1,10 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PatientService, DoctorService } from '../../core/services/domain.services';
 import { RegisterDoctorRequest } from '../../core/models/api.models';
+import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-registration', standalone: true,
@@ -15,7 +16,7 @@ import { RegisterDoctorRequest } from '../../core/models/api.models';
 <label>Prénom<input formControlName="firstName" autocomplete="given-name" placeholder="Votre prénom"></label><label>Nom<input formControlName="lastName" autocomplete="family-name" placeholder="Votre nom"></label>
 <label class="full">Adresse e-mail<input type="email" formControlName="email" autocomplete="email" placeholder="nom@exemple.com"><small *ngIf="form.controls.email.touched && form.controls.email.invalid">Saisissez une adresse e-mail valide.</small></label>
 <label>Téléphone<input formControlName="phone" autocomplete="tel" placeholder="+216 …"></label><label>Adresse<input formControlName="address" autocomplete="street-address" placeholder="Adresse complète"></label>
-<ng-container *ngIf="mode === 'doctor'"><label class="full">Nom affiché sur votre profil<input formControlName="serviceTitle" placeholder="Ex. Dr. Sami Ben Ali"></label><label>Spécialité<select formControlName="specialty"><option value="">Choisir une spécialité</option><option *ngFor="let s of specialties">{{s}}</option></select></label><label>Numéro professionnel<input formControlName="licenseNumber" placeholder="Numéro d’inscription"></label><label>Ville<input formControlName="city" placeholder="Votre ville"></label><label>Durée du rendez-vous (minutes)<input type="number" formControlName="durationMinutes" min="5" step="5"></label><label>Début de travail<input type="time" formControlName="workStart"></label><label>Fin de travail<input type="time" formControlName="workEnd"></label><label>Pause entre rendez-vous (minutes)<input type="number" formControlName="pauseMinutes" min="0" step="5"></label><label>Lieu du cabinet<input formControlName="location" placeholder="Adresse du cabinet"></label>
+<ng-container *ngIf="mode === 'doctor'"><label class="full">Nom affiché sur votre profil<input formControlName="serviceTitle" placeholder="Ex. Dr. Sami Ben Ali"></label><label>Spécialité<select formControlName="specialty"><option value="">Choisir une spécialité</option><option *ngFor="let s of specialties" [value]="s">{{s}}</option></select></label><small class="specialty-loading" *ngIf="specialtiesLoading">Chargement des spécialités…</small><small class="specialty-error" *ngIf="specialtiesError">{{specialtiesError}} <button type="button" (click)="loadSpecialties()">Réessayer</button></small><small class="specialty-empty" *ngIf="!specialtiesLoading&&!specialtiesError&&!specialties.length">Aucune spécialité disponible pour le moment.</small><label>Numéro professionnel<input formControlName="licenseNumber" placeholder="Numéro d’inscription"></label><label class="full">Attestation d’inscription à l’Ordre des médecins (avec cachet)<input type="file" accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" (change)="selectDocument($event)"><small class="document-hint">Un seul document PDF, JPG ou PNG, jusqu’à 5 Mo. {{doctorDocument?.name}}</small></label><label>Ville<input formControlName="city" placeholder="Votre ville"></label><label>Durée du rendez-vous (minutes)<input type="number" formControlName="durationMinutes" min="5" step="5"></label><label>Première plage — début<input type="time" step="300" formControlName="workStart"></label><label>Première plage — fin<input type="time" step="300" formControlName="workEnd"></label><label>Deuxième plage — début (facultatif)<input type="time" step="300" formControlName="secondWorkStart"></label><label>Deuxième plage — fin (facultatif)<input type="time" step="300" formControlName="secondWorkEnd"></label><label>Pause entre rendez-vous (minutes)<input type="number" formControlName="pauseMinutes" min="0" step="5"></label><label>Lieu du cabinet<input formControlName="location" placeholder="Adresse du cabinet"></label>
 <div class="full"><span class="form-label">Jours de travail</span><div class="days-picker"><label *ngFor="let day of days"><input type="checkbox" [checked]="workingDays.includes(day.value)" (change)="toggleDay(day.value,$any($event.target).checked)">{{day.label}}</label></div></div>
 <div class="full services-form" formArrayName="services"><span class="form-label">Services proposés et tarifs</span><div class="service-form-row" *ngFor="let group of services.controls;let i=index" [formGroupName]="i"><input formControlName="name" placeholder="Nom du service"><input type="number" min="0" step="1" formControlName="price" placeholder="Tarif en DT"><button type="button" class="remove-service" (click)="removeService(i)" [disabled]="services.length===1" aria-label="Supprimer ce service">×</button></div><button type="button" class="add-service" (click)="addService()">+ Ajouter un service</button></div>
 <label class="full">Description de votre activité<textarea rows="3" formControlName="description" maxlength="2000" placeholder="Présentez votre activité et vos services"></textarea></label></ng-container>
@@ -25,12 +26,15 @@ import { RegisterDoctorRequest } from '../../core/models/api.models';
 <p class="form-error" *ngIf="error">{{error}}</p><p class="form-success" *ngIf="success">{{success}}</p><button class="button button-primary submit-button" [disabled]="busy">{{busy?'Envoi…':'Créer mon compte'}} <span>→</span></button></form>
 <p class="auth-switch">Vous avez déjà un compte ? <a routerLink="/connexion">Se connecter</a></p><p class="auth-switch" *ngIf="mode==='doctor'">L’accès aux fonctions médecin sera activé après validation de votre inscription.</p></div></section></main>`
 })
-export class RegistrationComponent {
-  private fb=inject(FormBuilder);private route=inject(ActivatedRoute);private patients=inject(PatientService);private doctors=inject(DoctorService);
+export class RegistrationComponent implements OnInit {
+  private fb=inject(FormBuilder);private route=inject(ActivatedRoute);private patients=inject(PatientService);private doctors=inject(DoctorService);private api=inject(ApiService);
   mode: 'patient'|'doctor'=this.route.snapshot.data['mode']==='doctor'?'doctor':'patient';busy=false;error='';success='';workingDays=['1','2','3','4','5','6'];
-  specialties=['Médecin généraliste','Dentiste / Orthodontiste','Ophtalmologue','Gynécologue','Pédiatre','ORL','Dermatologue','Neurologue','Cardiologue'];
+  specialties:string[]=[];specialtiesLoading=false;specialtiesError='';doctorDocument:File|null=null;
   days=[{value:'1',label:'Lun'},{value:'2',label:'Mar'},{value:'3',label:'Mer'},{value:'4',label:'Jeu'},{value:'5',label:'Ven'},{value:'6',label:'Sam'},{value:'0',label:'Dim'}];
-  form=this.fb.group({firstName:[''],lastName:[''],email:['',[Validators.required,Validators.email]],phone:[''],address:[''],password:['',[Validators.required,Validators.minLength(8)]],passwordConfirm:[''],consent:[false],serviceTitle:[''],specialty:[''],licenseNumber:[''],durationMinutes:[30],workStart:['08:00'],workEnd:['17:00'],pauseMinutes:[0],location:[''],city:[''],description:[''],services:this.fb.array([this.newService()])});
+  form=this.fb.group({firstName:[''],lastName:[''],email:['',[Validators.required,Validators.email]],phone:[''],address:[''],password:['',[Validators.required,Validators.minLength(8)]],passwordConfirm:[''],consent:[false],serviceTitle:[''],specialty:[''],licenseNumber:[''],durationMinutes:[30],workStart:['08:00'],workEnd:['12:00'],secondWorkStart:['14:00'],secondWorkEnd:['17:00'],pauseMinutes:[0],location:[''],city:[''],description:[''],services:this.fb.array([this.newService()])});
+  ngOnInit(){this.loadSpecialties();}
+  loadSpecialties(){this.specialtiesLoading=true;this.specialtiesError='';this.api.get<Array<{id:string;name:string}>>('/specialties').subscribe({next:rows=>{this.specialties=(rows??[]).map(row=>row.name);this.specialtiesLoading=false;},error:e=>{this.specialtiesLoading=false;this.specialtiesError=e.status===0?'Backend Hello Doc inaccessible sur localhost:8081. Démarrez le backend et MySQL, puis réessayez.':e.status===401?'Le backend refuse l’accès public au catalogue des spécialités. Redémarrez le backend sur le port 8081 puis réessayez.':e.message||'Impossible de charger les spécialités. Vérifiez votre connexion puis réessayez.';}});}
+  selectDocument(event:Event){const file=(event.target as HTMLInputElement).files?.[0]??null;this.doctorDocument=file;}
   get services(){return this.form.controls.services as FormArray;}
   private newService(){return this.fb.group({name:[''],price:[null as number|null]});}
   addService(){this.services.push(this.newService());}
@@ -42,8 +46,12 @@ export class RegistrationComponent {
     if(v.password!==v.passwordConfirm){this.error='Les deux mots de passe ne correspondent pas.';return;}
     if(!v.consent){this.error='Veuillez accepter le traitement de vos informations pour créer le compte.';return;}
     if(this.mode==='doctor'){
+      if(!this.doctorDocument){this.error='Joignez l’attestation d’inscription à l’Ordre des médecins avec cachet.';return;}
+      if(this.doctorDocument.size>5*1024*1024){this.error='Le justificatif dépasse la taille maximale de 5 Mo.';return;}
       if(!v.serviceTitle?.trim()||!v.specialty||!v.licenseNumber?.trim()||!v.city?.trim()||!v.location?.trim()||!v.description?.trim()){this.error='Complétez les informations professionnelles obligatoires.';return;}
-      if(!v.workStart||!v.workEnd||v.workEnd<=v.workStart){this.error='L’heure de fin doit être après l’heure de début.';return;}
+      if(!v.workStart||!v.workEnd||v.workEnd<=v.workStart){this.error='La fin de la première plage doit suivre son début.';return;}
+      if(!!v.secondWorkStart!==!!v.secondWorkEnd){this.error='Pour la deuxième plage, renseignez le début et la fin, ou laissez les deux champs vides.';return;}
+      if(v.secondWorkStart&&v.secondWorkEnd&&(v.secondWorkStart<=v.workEnd!||v.secondWorkEnd<=v.secondWorkStart)){this.error='La deuxième plage doit commencer après la première et finir après son début.';return;}
       if(!this.workingDays.length){this.error='Sélectionnez au moins un jour de travail.';return;}
       const services=v.services.filter(s=>s.name?.trim()&&s.price!==null&&Number(s.price)>=0).map(s=>({name:s.name!.trim(),price:`${s.price} DT`}));
       if(!services.length){this.error='Ajoutez au moins un service avec un tarif valide.';return;}
@@ -51,8 +59,8 @@ export class RegistrationComponent {
     this.busy=true;const done=()=>this.busy=false;
     if(this.mode==='doctor'){
       const services=v.services.filter(s=>s.name?.trim()&&s.price!==null&&Number(s.price)>=0).map(s=>({name:s.name!.trim(),price:`${s.price} DT`}));
-      const request:RegisterDoctorRequest={firstName:v.firstName!,lastName:v.lastName!,email:v.email!,phone:v.phone!,address:v.address!,password:v.password!,consent:true,specialty:v.specialty!,licenseNumber:v.licenseNumber!,serviceTitle:v.serviceTitle!,durationMinutes:Number(v.durationMinutes),workStart:v.workStart!,workEnd:v.workEnd!,workingDays:this.workingDays,pauseMinutes:Number(v.pauseMinutes),location:v.location!,city:v.city!,description:v.description!,services};
-      this.doctors.register(request).subscribe({next:()=>{done();this.success='Demande envoyée. Votre compte restera en attente de validation par l’équipe Hello Doc.';},error:e=>{done();this.error=e.message;}});
+      const request:RegisterDoctorRequest={firstName:v.firstName!,lastName:v.lastName!,email:v.email!,phone:v.phone!,address:v.address!,password:v.password!,consent:true,specialty:v.specialty!,licenseNumber:v.licenseNumber!,serviceTitle:v.serviceTitle!,durationMinutes:Number(v.durationMinutes),workStart:v.workStart!,workEnd:v.workEnd!,secondWorkStart:v.secondWorkStart||undefined,secondWorkEnd:v.secondWorkEnd||undefined,workingDays:this.workingDays,pauseMinutes:Number(v.pauseMinutes),location:v.location!,city:v.city!,description:v.description!,services};
+      this.doctors.register(request,this.doctorDocument!).subscribe({next:()=>{done();this.success='Demande envoyée. Votre compte restera en attente de validation par l’équipe Hello Doc.';},error:e=>{done();this.error=e.message;}});
     }else this.patients.register({firstName:v.firstName!,lastName:v.lastName!,email:v.email!,phone:v.phone!,address:v.address!,password:v.password!,consent:true}).subscribe({next:()=>{done();this.success='Compte créé. Vous pouvez maintenant vous connecter.';},error:e=>{done();this.error=e.message;}});
   }
 }
