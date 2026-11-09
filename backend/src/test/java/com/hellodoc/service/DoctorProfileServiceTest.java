@@ -48,13 +48,13 @@ class DoctorProfileServiceTest {
  @Test void slotsSupportTwoWindowsAndRemoveOnlyThePartialAbsenceOverlap(){
   UserAccount user=new UserAccount("A","Doctor","a@example.test","p","a","hash",UserRole.DOCTOR,"ACTIVE");Doctor doctor=new Doctor(user,null,"Dr A","Tunis","Clinic","Clinic","Bio",30,0,"[]");UUID id=UUID.randomUUID();LocalDate date=LocalDate.now(ZoneId.of("Africa/Tunis")).with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.MONDAY));
   when(doctors.findByIdAndActiveTrue(id)).thenReturn(Optional.of(doctor));when(absences.findByDoctorIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(any(),eq(date),eq(date))).thenReturn(List.of(new Absence(doctor,date,date,LocalTime.of(9,0),LocalTime.of(9,30),"Rendez-vous privé",null)));
-  when(availabilities.findByDoctorIdAndIsoWeekdayOrderByStartTimeAsc(any(),eq(1))).thenReturn(List.of(new Availability(doctor,1,LocalTime.of(9,0),LocalTime.of(10,0),30,0),new Availability(doctor,1,LocalTime.of(14,0),LocalTime.of(15,0),30,0)));
+  when(availabilities.findByDoctorIdAndIsoWeekdayOrderByStartTimeAsc(any(),eq(1))).thenReturn(List.of(new Availability(doctor,1,1,LocalTime.of(9,0),LocalTime.of(10,0),30,0),new Availability(doctor,1,2,LocalTime.of(14,0),LocalTime.of(15,0),30,0)));
   List<TimeSlotDto> slots=service.slots(id,date);assertEquals(3,slots.size());assertEquals("Première plage",slots.get(0).periodLabel());assertEquals("Deuxième plage",slots.get(1).periodLabel());
  }
 
  @Test void weeklyConfigurationRejectsOverlappingWindowsBeforeDeletingSavedSchedule(){
   UserAccount user=new UserAccount("A","Doctor","a@example.test","p","a","hash",UserRole.DOCTOR,"ACTIVE");Doctor doctor=new Doctor(user,null,"Dr A","Tunis","Clinic","Clinic","Bio",30,0,"[]");when(doctors.findByUserEmailIgnoreCase("a@example.test")).thenReturn(Optional.of(doctor));
-  WeeklyAvailabilityRequest request=new WeeklyAvailabilityRequest(30,0,List.of(new WeeklyAvailabilityRequest.Window(1,"09:00","12:00"),new WeeklyAvailabilityRequest.Window(1,"11:55","14:00")));
+  WeeklyAvailabilityRequest request=new WeeklyAvailabilityRequest(30,0,List.of(new WeeklyAvailabilityRequest.Window(1,1,"09:00","12:00"),new WeeklyAvailabilityRequest.Window(1,2,"11:55","14:00")));
   assertEquals(400,assertThrows(ResponseStatusException.class,()->service.replaceWeeklyAvailability("a@example.test",request)).getStatusCode().value());verify(availabilities,never()).deleteByDoctorId(any());
  }
 

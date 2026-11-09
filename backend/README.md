@@ -41,8 +41,11 @@ Hibernate creates/updates the `users` table. Database credentials and the initia
 - `GET/PUT /api/doctors/me` reads or updates the signed-in doctor profile; updates require the current password.
 - `GET /api/specialties`, `GET /api/doctors`, and `GET /api/doctors/{id}` expose specialties, paginated search, and public approved profiles.
 - `GET /api/doctors/{id}/slots?date=YYYY-MM-DD` calculates free slots from weekly schedules, absences, and active appointments.
+- `GET /api/doctors/{id}/availability-calendar?month=YYYY-MM` returns each date’s `AVAILABLE`, `FULL`, `DAY_OFF`, `ABSENT`, or `PAST` status, free-slot count, and first free time. Free slots are grouped as the first or second window, exclude pending/confirmed appointments and partial absences, omit past times, and enforce a configurable 60-minute minimum notice and 60-day booking horizon (`HELLODOC_MIN_BOOKING_NOTICE_MINUTES`, `HELLODOC_MAX_BOOKING_HORIZON_DAYS`).
+- `GET /api/doctors/me/availabilities` and `PUT /api/doctors/me/availabilities/weekly` manage up to two non-overlapping weekly windows per ISO weekday. Existing availability rows remain the first window; replacing the weekly schedule only changes future slot calculation and never edits saved appointments. Window edits validate five-minute increments and require enough time for at least one consultation.
 - `GET/POST/PUT/DELETE /api/doctors/me/availabilities[/{id}]` manages weekly recurring windows using ISO weekdays (Monday 1 through Sunday 7).
-- `GET/POST/PUT/DELETE /api/doctors/me/absences[/{id}]` manages date-bounded absences.
+- `GET/POST/PUT/DELETE /api/doctors/me/absences[/{id}]` manages date-bounded all-day absences or one-date partial absences with start/end times. Absence reasons remain private.
+- Public doctor profiles include professional phone, clinic address, and city. They never include the account email.
 
 ## Appointment API
 

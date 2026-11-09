@@ -1,6 +1,6 @@
 # Hello Doc — Spring Boot Backend Specification
 
-**Status:** account/session and profile foundations, specialty discovery, weekly availability, absences, appointment booking and management, persisted notifications, and post-consultation reviews are implemented. Patient and active-doctor dashboards expose persisted appointment and unread-notification data. Administrative appointment analytics, activity logs, and notification management are outside this implemented scope. **Base URL:** `http://localhost:8081/api`. **Database:** MySQL through Laragon on port `3308`. The Angular workspace accepts active `USER` accounts as patients and active `DOCTOR` accounts for the doctor area.
+**Status:** account/session and profile foundations, specialty discovery, up to two weekly availability windows, full-day and partial absences, public availability calendar, appointment booking and management, persisted notifications, and post-consultation reviews are implemented. Patient and active-doctor dashboards expose persisted appointment and unread-notification data. Administrative appointment analytics, activity logs, and notification management are outside this implemented scope. **Base URL:** `http://localhost:8081/api`. **Database:** MySQL through Laragon on port `3308`. The Angular workspace accepts active `USER` accounts as patients and active `DOCTOR` accounts for the doctor area.
 
 ## 1. Product and frontend contract
 
