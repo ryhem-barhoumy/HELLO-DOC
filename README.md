@@ -23,6 +23,6 @@ Open `http://localhost:4200`. Build with `npm run build` or `npm run build -- --
 
 ## Run the backend
 
-Start Laragon MySQL on port `3308` and follow [backend/README.md](backend/README.md) to securely create/verify `hello_doc` and run the backend. The backend defaults to `http://localhost:8081/api`. Sign-in, profiles, doctor discovery, approval, availability, and absence APIs use the configured MySQL database. Appointment booking and the remaining workflows are planned in later lots.
+Configure your own MySQL connection in the ignored `backend/.env.local` file (copy `backend/.env.example` as a guide), then follow [backend/README.md](backend/README.md). The backend API uses port `8081` by default; each collaborator supplies their own MySQL host and port. Sign-in, profiles, doctor discovery, approval, availability, absences, appointment booking and core patient/doctor appointment workflows use the configured MySQL database. Administrative appointment analytics, activity logs, notification management, and other explicitly listed out-of-scope features remain planned.
 
 See [frontend/README.md](frontend/README.md) for frontend details and [backend/docs/HELLO_DOC_BACKEND_SPECIFICATION.md](backend/docs/HELLO_DOC_BACKEND_SPECIFICATION.md) for the API contract. No Node.js backend, mock database, or fake authentication is included.

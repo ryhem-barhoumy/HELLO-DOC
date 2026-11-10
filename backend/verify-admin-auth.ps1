@@ -7,7 +7,7 @@ function Read-SecretText([string]$Prompt) {
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer); $secure.Dispose() }
 }
 
-$base = [Uri]'http://localhost:8080/api/'
+$base = [Uri]'http://localhost:8081/api/'
 $handler = [Net.Http.HttpClientHandler]::new()
 $handler.CookieContainer = [Net.CookieContainer]::new()
 $client = [Net.Http.HttpClient]::new($handler)

@@ -1,28 +1,28 @@
 # Hello Doc Spring Boot backend
 
-This backend uses Java 21, Spring Boot, Spring Security, Spring Data JPA, BCrypt, and Laragon MySQL. It implements session authentication, patient profiles as USER, pending doctor applications, admin approval with Doctor profile creation, specialties and public doctor discovery, recurring availability, absences, calculated free slots, and appointment booking/management. Backend port: 8081. MySQL port: 3308.
+This backend uses Java 21, Spring Boot, Spring Security, Spring Data JPA, BCrypt, and MySQL. It implements session authentication, patient profiles as USER, pending doctor applications, admin approval with Doctor profile creation, specialties and public doctor discovery, recurring availability, absences, calculated free slots, and appointment booking/management. Backend API port: 8081 by default. MySQL host and port are local settings chosen by each collaborator.
 
 ## Configure Laragon and start
 
-1. Start Laragon's MySQL service. To create or verify only the `hello_doc` schema and start Spring Boot with passwords entered as secure prompts (not written to the project), run:
+1. Start your local MySQL service. Copy `.env.example` to `.env.local` and set your own MySQL host, port, database name, and username. `.env.local` is ignored by Git; do not share it. Leave `HELLODOC_DB_PASSWORD=` empty if the account has no password. Then create or verify only your configured schema and start Spring Boot:
 
    ```powershell
    cd backend
    .\run-local.ps1
    ```
 
-   The script targets MySQL at `127.0.0.1:3308`, username `root`, and runs `CREATE DATABASE IF NOT EXISTS hello_doc`. It does not change other databases. It asks for the MySQL password without echoing it; press Enter to use an empty password. It then separately requires the initial Admin password. Both values use process-only environment variables, which the script removes when Spring Boot stops.
+   The script reads local settings from `.env.local`; defined process environment variables override that file. It runs `CREATE DATABASE IF NOT EXISTS` only for the configured schema and leaves all other databases untouched. It prompts for the MySQL password without echoing it; press Enter to use an empty password. It separately requires the initial Admin password. These credentials are not stored by the script.
 
    You can alternatively set environment variables manually in the backend process. Do not commit real secrets:
 
    ```powershell
-   $env:HELLODOC_DB_URL = 'jdbc:mysql://localhost:3308/hello_doc?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
-   $env:HELLODOC_DB_USERNAME = '<your Laragon MySQL username>'
+   $env:HELLODOC_DB_URL = 'jdbc:mysql://<your-host>:<your-port>/<your-database>?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
+   $env:HELLODOC_DB_USERNAME = '<your MySQL username>'
    $env:HELLODOC_DB_PASSWORD = '' # leave empty for a root account with no password
    $env:HELLODOC_ADMIN_INITIAL_PASSWORD = '<initial administrator password>'
    ```
 
-The initial Admin password is separate from the MySQL password. It is read only by the backend process, is never compiled into Angular, and is BCrypt-hashed before insertion. The seed runs only when `admin@hellodoc.com` is absent. On later starts it leaves the existing row and password untouched.
+Set `SERVER_PORT` only if you need to override the shared backend default of `8081`. The initial Admin password is separate from the MySQL password. It is read only by the backend process, is never compiled into Angular, and is BCrypt-hashed before insertion. The seed runs only when `admin@hellodoc.com` is absent. On later starts it leaves the existing row and password untouched.
 
 2. The initial sign-in is `admin@hellodoc.com` with the password supplied at the prompt. Immediately after login, open Admin > Sécurité and change it using the current and new password. The new password must contain at least eight characters. The run script removes the initial-password environment variable when stopped; the saved account is unaffected.
 

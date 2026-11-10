@@ -29,6 +29,10 @@ import { Appointment, AppointmentRequest, DoctorSummary, Page, RegisterDoctorReq
 @Injectable({ providedIn: 'root' }) export class AdminService {
   private api = inject(ApiService);
   dashboard() { return this.api.get('/admin/dashboard'); }
+  specialties() { return this.api.get<Array<{id:string;name:string}>>('/admin/specialties'); }
+  createSpecialty(name:string) { return this.api.post<{id:string;name:string}>('/admin/specialties',{name}); }
+  updateSpecialty(id:string,name:string) { return this.api.put<{id:string;name:string}>(`/admin/specialties/${id}`,{name}); }
+  deleteSpecialty(id:string) { return this.api.delete<void>(`/admin/specialties/${id}`); }
   doctors(query?: Record<string, string | number | undefined>) { return this.api.get('/admin/doctors', query); }
   patients(query?: Record<string, string | number | undefined>) { return this.api.get('/admin/patients', query); }
   appointments(query?: Record<string, string | number | undefined>) { return this.api.get('/admin/appointments', query); }

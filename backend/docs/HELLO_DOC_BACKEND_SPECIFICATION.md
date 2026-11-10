@@ -1,6 +1,6 @@
 # Hello Doc — Spring Boot Backend Specification
 
-**Status:** account/session and profile foundations, specialty discovery, up to two weekly availability windows, full-day and partial absences, public availability calendar, appointment booking and management, persisted notifications, and post-consultation reviews are implemented. Patient and active-doctor dashboards expose persisted appointment and unread-notification data. Administrative appointment analytics, activity logs, and notification management are outside this implemented scope. **Base URL:** `http://localhost:8081/api`. **Database:** MySQL through Laragon on port `3308`. The Angular workspace accepts active `USER` accounts as patients and active `DOCTOR` accounts for the doctor area.
+**Status:** account/session and profile foundations, specialty discovery, up to two weekly availability windows, full-day and partial absences, public availability calendar, appointment booking and management, persisted notifications, and post-consultation reviews are implemented. Patient and active-doctor dashboards expose persisted appointment and unread-notification data. Administrative appointment analytics, activity logs, and notification management are outside this implemented scope. **Base URL:** `http://localhost:8081/api` (Spring Boot defaults to port `8081`; set `SERVER_PORT` to override locally). **Database:** MySQL host, port, schema, username, and password are per-developer settings loaded from the ignored `backend/.env.local`; see `backend/.env.example`. No Laragon-specific port is shared. The Angular workspace accepts active `USER` accounts as patients and active `DOCTOR` accounts for the doctor area.
 
 ## 1. Product and frontend contract
 
@@ -214,6 +214,10 @@ Suggested status transitions matching the report: `PENDING → CONFIRMED | CANCE
 | `POST /admin/doctors/{id}/approve` | ADMIN | Optional `{ "comment":"…" }`; only PENDING; atomically APPROVED, set reviewer/time, audit and notify. 409 if already decided. |
 | `POST /admin/doctors/{id}/reject` | ADMIN | `{ "reason":"…" }` required; set REJECTED, audit, notify. Re-review policy explicit. |
 | `PATCH /admin/doctors/{id}/status` | ADMIN | `{ "status":"ACTIVE" }`; activation does not bypass approval. Deactivation blocks new bookings and has policy for current bookings. |
+| `GET /admin/specialties` | ADMIN | List the persisted medical specialties. Public registration still uses `GET /specialties`. |
+| `POST /admin/specialties` | ADMIN | Create `{ "name":"Neurologie" }`; trimmed nonblank name, maximum 120 characters, unique after case/accent normalization. Returns 201. |
+| `PUT /admin/specialties/{id}` | ADMIN | Rename a specialty using the same validation and uniqueness rules. |
+| `DELETE /admin/specialties/{id}` | ADMIN | Delete only when no doctor is associated; otherwise return 409 with the associated doctor count. |
 | `GET /admin/patients` / `GET /admin/patients/{id}` | ADMIN | Query `q,status,page,size`; safe account and appointment metadata only; no consultation note or diagnosis. |
 | `PATCH /admin/patients/{id}/status` | ADMIN | `{ "status":"INACTIVE" }`; audit actor/time and define existing appointment handling. |
 | `GET /admin/appointments` | ADMIN | `doctorId,patientId,from,to,status,page,size`; minimal operational projection. |

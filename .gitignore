@@ -7,3 +7,6 @@ dist/
 **/target/
 .env
 .env.*
+!**/.env.example
+**/.env.local
+**/application-local.properties
