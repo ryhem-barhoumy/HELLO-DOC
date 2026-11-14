@@ -36,7 +36,7 @@ public class SecurityConfig {
    .formLogin(form->form.disable()).httpBasic(basic->basic.disable())
    .authorizeHttpRequests(auth->auth
     .requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
-   .requestMatchers(HttpMethod.GET,"/api/specialties","/api/doctors","/api/doctors/*","/api/doctors/*/slots").permitAll()
+   .requestMatchers(HttpMethod.GET,"/api/specialties","/api/doctors","/api/doctors/*","/api/doctors/*/slots","/api/doctors/*/availability-calendar","/api/doctors/*/booking-policy").permitAll()
     .requestMatchers(HttpMethod.GET,"/api/auth/csrf","/api/auth/me").permitAll()
     .requestMatchers(HttpMethod.POST,"/api/auth/login","/api/patients/registrations","/api/doctors/registrations").permitAll()
     .requestMatchers("/api/admin/**").hasRole("ADMIN")

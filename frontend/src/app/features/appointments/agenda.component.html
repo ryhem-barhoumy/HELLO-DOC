@@ -1,0 +1,26 @@
+<section class="agenda">
+  <header class="agenda-toolbar">
+    <div class="agenda-period"><button type="button" class="icon-button" (click)="move(-1)" aria-label="Période précédente">‹</button><h2>{{label}}</h2><button type="button" class="icon-button" (click)="move(1)" aria-label="Période suivante">›</button></div>
+    <button class="button button-secondary" (click)="today()">Aujourd’hui</button>
+    <div class="segmented-control" role="group" aria-label="Vue de l’agenda"><button (click)="selectView('day')" [attr.aria-pressed]="view==='day'">Jour</button><button (click)="selectView('week')" [attr.aria-pressed]="view==='week'">Semaine</button><button (click)="selectView('month')" [attr.aria-pressed]="view==='month'">Mois</button></div>
+  </header>
+  <div class="agenda-filters"><label><span>Rechercher</span><input type="search" [(ngModel)]="query" placeholder="Patient ou service"></label><label><span>Statut</span><select [(ngModel)]="status"><option value="">Tous les statuts</option><option *ngFor="let item of statuses" [value]="item.value">{{item.label}}</option></select></label><label><span>Aller à la date</span><input type="date" [ngModel]="key(cursor)" (ngModelChange)="chooseDay($event)"></label></div>
+  <div class="loading-panel" *ngIf="loading" role="status"><span class="spinner"></span>Chargement de votre agenda…</div>
+  <div *ngIf="error" class="notice notice-error" role="alert">{{error}} <button class="small-action" (click)="load()">Réessayer</button></div>
+  <ng-container *ngIf="!loading && !error">
+    <p class="agenda-count" aria-live="polite">{{filtered.length}} rendez-vous sur cette période <span>· Heures de Tunis</span></p>
+    <div *ngIf="view==='month'" class="agenda-month"><b *ngFor="let day of weekdays">{{day}}</b><div *ngFor="let blank of blanks" class="agenda-cell blank"></div><div *ngFor="let day of days" class="agenda-cell" [class.today]="isToday(day)"><button class="agenda-date" (click)="cursor=day;selectView('day')" [attr.aria-label]="day|date:'fullDate'">{{day|date:'d'}}</button><a *ngFor="let item of events(day)" [routerLink]="['/medecin/rendez-vous',item.id]" class="agenda-event" [attr.data-status]="item.status"><b>{{item.startsAt|date:'HH:mm':'+0100'}}</b> {{item.patientName}}<small>{{statusLabel(item.status)}}</small></a></div></div>
+    <div class="agenda-days" [class.month-list]="view==='month'">
+      <section *ngFor="let day of days" class="agenda-day" [class.today]="isToday(day)" [class.no-events]="!events(day).length">
+        <header><span>{{day|date:'EEEE'}}</span><b>{{day|date:'d MMMM'}}</b><small *ngIf="isToday(day)">Aujourd’hui</small><span class="day-count">{{events(day).length}} rendez-vous</span></header>
+        <div class="day-empty" *ngIf="!events(day).length">Aucun rendez-vous</div>
+        <a *ngFor="let item of events(day)" class="agenda-appointment" [attr.data-status]="item.status" [routerLink]="['/medecin/rendez-vous',item.id]">
+          <div class="agenda-time"><b>{{item.startsAt|date:'HH:mm':'+0100'}}</b><span>{{item.endsAt|date:'HH:mm':'+0100'}}</span></div>
+          <div class="agenda-person"><b>{{item.patientName}}</b><span>{{item.serviceName}}</span></div>
+          <span class="appointment-status" [attr.data-status]="item.status">{{statusLabel(item.status)}}</span><span class="agenda-arrow" aria-hidden="true">↗</span>
+        </a>
+      </section>
+    </div>
+    <div class="empty-panel" *ngIf="!filtered.length && (appointments.length || view==='month')"><h3>Aucun rendez-vous ne correspond</h3><p>Essayez un autre nom ou un autre statut.</p><button class="button button-secondary" (click)="query='';status=''">Effacer les filtres</button></div>
+  </ng-container>
+</section>

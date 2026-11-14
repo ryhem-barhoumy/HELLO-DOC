@@ -33,9 +33,15 @@ class DoctorProfileServiceTest {
   verify(availabilities,never()).save(any());
  }
 
+ @Test void publicProfileFallsBackToServicesPersistedOnLinkedApplication(){
+  UserAccount user=new UserAccount("Riham","Neuro","neuro@example.test","+21611111111","Cabinet","hash",UserRole.DOCTOR,"ACTIVE");DoctorApplication application=new DoctorApplication(user,"Dr Riham","Neurologie","LIC-NEURO","Tunis","Cabinet",30,"08:00","16:00",0,"[\"1\"]","[{\"name\":\"Consultation neurologique\",\"price\":\"80 DT\"}]","Bio");Doctor doctor=new Doctor(user,application,"Dr Riham","Tunis","Cabinet","Cabinet","Bio",30,0,"[]");UUID id=UUID.randomUUID();
+  when(doctors.findByIdAndActiveTrue(id)).thenReturn(Optional.of(doctor));when(availabilities.findByDoctorIdOrderByIsoWeekdayAscStartTimeAsc(id)).thenReturn(List.of());when(availabilities.findByDoctorIdAndIsoWeekdayOrderByStartTimeAsc(eq(id),anyInt())).thenReturn(List.of());when(absences.findByDoctorIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(eq(id),any(),any())).thenReturn(List.of());
+  DoctorPublicDto result=service.publicProfile(id);assertEquals(1,result.services().size());assertEquals("Consultation neurologique",result.services().get(0).name());assertEquals("80 DT",result.services().get(0).price());
+ }
+
  @Test void slotsAreCalculatedFromRecurringAvailabilityAndOmitAbsenceDays(){
   UserAccount user=new UserAccount("A","Doctor","a@example.test","p","a","hash",UserRole.DOCTOR,"ACTIVE");
-  Doctor doctor=new Doctor(user,null,"Dr A","Tunis","Clinic","Clinic","Bio",30,15,"[]");
+  Doctor doctor=new Doctor(user,null,"Dr A","Tunis","Clinic","Clinic","Bio",30,15,"[{\"name\":\"Consultation\",\"price\":\"50 DT\"}]");
   UUID id=UUID.randomUUID();LocalDate date=LocalDate.now(ZoneId.of("Africa/Tunis")).with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.MONDAY));
   when(doctors.findByIdAndActiveTrue(id)).thenReturn(Optional.of(doctor));
   when(absences.findByDoctorIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(any(),eq(date),eq(date))).thenReturn(List.of());
@@ -46,14 +52,14 @@ class DoctorProfileServiceTest {
  }
 
  @Test void slotsSupportTwoWindowsAndRemoveOnlyThePartialAbsenceOverlap(){
-  UserAccount user=new UserAccount("A","Doctor","a@example.test","p","a","hash",UserRole.DOCTOR,"ACTIVE");Doctor doctor=new Doctor(user,null,"Dr A","Tunis","Clinic","Clinic","Bio",30,0,"[]");UUID id=UUID.randomUUID();LocalDate date=LocalDate.now(ZoneId.of("Africa/Tunis")).with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.MONDAY));
+  UserAccount user=new UserAccount("A","Doctor","a@example.test","p","a","hash",UserRole.DOCTOR,"ACTIVE");Doctor doctor=new Doctor(user,null,"Dr A","Tunis","Clinic","Clinic","Bio",30,0,"[{\"name\":\"Consultation\",\"price\":\"50 DT\"}]");UUID id=UUID.randomUUID();LocalDate date=LocalDate.now(ZoneId.of("Africa/Tunis")).with(java.time.temporal.TemporalAdjusters.next(DayOfWeek.MONDAY));
   when(doctors.findByIdAndActiveTrue(id)).thenReturn(Optional.of(doctor));when(absences.findByDoctorIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(any(),eq(date),eq(date))).thenReturn(List.of(new Absence(doctor,date,date,LocalTime.of(9,0),LocalTime.of(9,30),"Rendez-vous privé",null)));
   when(availabilities.findByDoctorIdAndIsoWeekdayOrderByStartTimeAsc(any(),eq(1))).thenReturn(List.of(new Availability(doctor,1,1,LocalTime.of(9,0),LocalTime.of(10,0),30,0),new Availability(doctor,1,2,LocalTime.of(14,0),LocalTime.of(15,0),30,0)));
   List<TimeSlotDto> slots=service.slots(id,date);assertEquals(3,slots.size());assertEquals("Première plage",slots.get(0).periodLabel());assertEquals("Deuxième plage",slots.get(1).periodLabel());
  }
 
  @Test void weeklyConfigurationRejectsOverlappingWindowsBeforeDeletingSavedSchedule(){
-  UserAccount user=new UserAccount("A","Doctor","a@example.test","p","a","hash",UserRole.DOCTOR,"ACTIVE");Doctor doctor=new Doctor(user,null,"Dr A","Tunis","Clinic","Clinic","Bio",30,0,"[]");when(doctors.findByUserEmailIgnoreCase("a@example.test")).thenReturn(Optional.of(doctor));
+  UserAccount user=new UserAccount("A","Doctor","a@example.test","p","a","hash",UserRole.DOCTOR,"ACTIVE");Doctor doctor=new Doctor(user,null,"Dr A","Tunis","Clinic","Clinic","Bio",30,0,"[]");when(doctors.findByUserEmailIgnoreCase("a@example.test")).thenReturn(Optional.of(doctor));when(doctors.lockActiveById(doctor.getId())).thenReturn(Optional.of(doctor));
   WeeklyAvailabilityRequest request=new WeeklyAvailabilityRequest(30,0,List.of(new WeeklyAvailabilityRequest.Window(1,1,"09:00","12:00"),new WeeklyAvailabilityRequest.Window(1,2,"11:55","14:00")));
   assertEquals(400,assertThrows(ResponseStatusException.class,()->service.replaceWeeklyAvailability("a@example.test",request)).getStatusCode().value());verify(availabilities,never()).deleteByDoctorId(any());
  }
@@ -61,7 +67,7 @@ class DoctorProfileServiceTest {
  @Test void availabilityLookupIsScopedToAuthenticatedDoctorsOwnProfile(){
   UserAccount user=new UserAccount("A","Doctor","a@example.test","p","a","hash",UserRole.DOCTOR,"ACTIVE");
   Doctor doctor=new Doctor(user,null,"Dr A","Tunis","Clinic","Clinic","Bio",30,0,"[]");
-  when(doctors.findByUserEmailIgnoreCase("a@example.test")).thenReturn(Optional.of(doctor));
+  when(doctors.findByUserEmailIgnoreCase("a@example.test")).thenReturn(Optional.of(doctor));when(doctors.lockActiveById(doctor.getId())).thenReturn(Optional.of(doctor));
   UUID foreignId=UUID.randomUUID();when(availabilities.findByIdAndDoctorId(foreignId,null)).thenReturn(Optional.empty());
   assertThrows(ResponseStatusException.class,()->service.updateAvailability("a@example.test",foreignId,new AvailabilityRequest(1,"09:00","12:00",30,0)));
  }

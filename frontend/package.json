@@ -5,7 +5,8 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "serve": "ng serve"
+    "serve": "ng serve",
+    "test:booking": "node scripts/test-booking.mjs"
   },
   "private": true,
   "dependencies": {

@@ -39,6 +39,7 @@ class AdminSecurityTest {
  @MockBean AccountDetailsService accountDetails;
  @MockBean DoctorApprovalService approvals;
  @MockBean AdminDirectoryService directory;
+ @MockBean com.hellodoc.service.AdminProfileService profiles;
 
  @Test void anonymousRequestGets401() throws Exception { mvc.perform(get("/api/admin/dashboard")).andExpect(status().isUnauthorized()); }
  @Test @WithMockUser(roles="USER") void normalUserGets403() throws Exception { mvc.perform(get("/api/admin/dashboard")).andExpect(status().isForbidden()); }

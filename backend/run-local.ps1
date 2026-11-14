@@ -109,7 +109,7 @@ if (-not $mavenPath) {
 }
 if (-not $mavenPath) { throw 'Maven is not installed. Install Maven 3.9+ and retry.' }
 
-try { & $mavenPath -f (Join-Path $PSScriptRoot 'pom.xml') spring-boot:run }
+try { & $mavenPath -f (Join-Path $PSScriptRoot 'pom.xml') spring-boot:run "-Dspring-boot.run.jvmArguments=-Djdk.net.unixdomain.tmpdir=$PSScriptRoot\target" }
 finally {
     Restore-LocalEnvironment
 }

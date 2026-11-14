@@ -1,0 +1,56 @@
+<div class="patient-booking">
+  <header class="patient-header">
+    <div class="patient-header-inner">
+      <a class="brand" routerLink="/patient"><span class="brand-mark">+</span> hello<span>doc</span></a>
+      <button class="nav-toggle" type="button" (click)="menuOpen=!menuOpen" [attr.aria-expanded]="menuOpen" aria-controls="patient-links">☰ <span>Menu</span></button>
+      <nav id="patient-links" aria-label="Navigation patient" [class.open]="menuOpen" [attr.inert]="isMobile&&!menuOpen?'':null">
+        <a routerLink="/patient/medecins">Trouver un médecin</a><a routerLink="/patient/rendez-vous">Mes rendez-vous</a><a routerLink="/patient/notifications"><app-icon name="notifications"></app-icon> Notifications</a>
+      </nav>
+      <details class="account-menu"><summary><span class="account-avatar" aria-hidden="true">{{auth.user()?.firstName?.charAt(0)}}{{auth.user()?.lastName?.charAt(0)}}</span><span>Mon espace</span>⌄</summary><div><strong>{{patientName}}</strong><a routerLink="/patient/profil">Mon profil</a><a routerLink="/patient/parametres">Paramètres</a><button type="button" (click)="logout()" [disabled]="logoutBusy">{{logoutBusy?'Déconnexion…':'Se déconnecter'}}</button></div></details>
+    </div>
+  </header>
+  <main class="booking-container">
+    <a class="booking-back" [routerLink]="['/patient/medecins',doctorId]">← Retour au profil du médecin</a>
+    <header class="booking-heading"><div><span class="eyebrow">VOTRE SANTÉ, SIMPLEMENT</span><h1>Prendre rendez-vous</h1><p>Choisissez votre consultation et l’horaire qui vous convient.</p></div><span class="patient-label">✚ Espace patient</span></header>
+    <div *ngIf="loadingDoctor" class="loading-panel" role="status"><span class="spinner"></span>Chargement du médecin et de ses services…</div>
+    <div class="notice notice-error" *ngIf="profileError" role="alert">{{profileError}} <button class="button button-secondary" type="button" (click)="loadDoctor(true)">Réessayer</button></div>
+    <div class="notice notice-error" *ngIf="error" role="alert">{{error}}</div>
+    <section class="booking-success" *ngIf="success" role="status" tabindex="-1"><h2>✓ {{success}}</h2><p>Retrouvez votre demande et son évolution dans votre espace patient.</p><a class="button button-primary" routerLink="/patient/rendez-vous">Voir mes rendez-vous →</a></section>
+    <div class="booking-layout" *ngIf="doctor && !loadingDoctor && !profileError">
+      <form id="patient-booking-form" class="consultation-form" [formGroup]="form" (ngSubmit)="submit()">
+        <fieldset [disabled]="busy || !!success || !services.length">
+          <legend><span>1</span> Choisir un service</legend>
+          <label for="booking-service" class="sr-only">Service</label>
+          <select id="booking-service" formControlName="serviceName"><option value="">Choisir un service</option><option *ngFor="let service of services" [value]="service.name">{{service.name}}</option></select>
+          <p class="booking-hint">Les services et tarifs sont définis par ce médecin.</p>
+        </fieldset>
+        <div *ngIf="!services.length" class="booking-empty" role="status"><b>Aucun service réservable pour le moment</b><p>Ce médecin n’a pas encore publié de service avec un tarif. Vous pourrez réserver lorsqu’il aura complété son activité.</p><a [routerLink]="['/patient/medecins',doctorId]">Retour à son profil →</a></div>
+        <fieldset [disabled]="busy || !!success || !services.length">
+          <legend><span>2</span> Choisir une date et une heure</legend>
+          <div class="date-toolbar"><strong>{{monthLabel}}</strong><button type="button" class="calendar-toggle" (click)="calendarOpen=!calendarOpen" [attr.aria-expanded]="calendarOpen" aria-controls="booking-calendar">▦ Choisir une autre date</button></div>
+          <p *ngIf="calendarLoading" class="booking-hint" role="status">Chargement des disponibilités…</p>
+          <div *ngIf="calendarError" class="notice notice-error" role="alert">{{calendarError}}<button type="button" class="small-action" (click)="loadCalendar()">Réessayer</button></div>
+          <div class="compact-date-navigation" *ngIf="!calendarLoading && !calendarError"><button type="button" aria-label="Jours précédents" [disabled]="dateOffset===0" (click)="dateOffset=dateOffset-5">‹</button><div class="compact-days" role="group" aria-label="Dates de consultation"><button type="button" *ngFor="let day of compactDays" [disabled]="!dayEnabled(day)" [attr.aria-pressed]="selectedDate===day.date" (click)="chooseDate(day)" [attr.aria-label]="dateText(day.date)+', '+dayLabel(day)"><span>{{dateText(day.date,{weekday:'short'})}}</span><b>{{day.date.slice(-2)}}</b><small>{{day.status==='AVAILABLE'?'Disponible':dayLabel(day)}}</small></button></div><button type="button" aria-label="Jours suivants" [disabled]="!hasMoreDays" (click)="dateOffset=dateOffset+5">›</button></div>
+          <section id="booking-calendar" *ngIf="calendarOpen" class="date-calendar" aria-label="Calendrier des disponibilités">
+            <header><button type="button" (click)="moveMonth(-1)" [disabled]="month===policy?.minDate?.slice(0,7)" aria-label="Mois précédent">‹</button><strong>{{monthLabel}}</strong><button type="button" (click)="moveMonth(1)" [disabled]="month===policy?.maxDate?.slice(0,7)" aria-label="Mois suivant">›</button></header>
+            <div class="date-calendar-grid"><span *ngFor="let name of ['Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.','Dim.']">{{name}}</span><i *ngFor="let blank of leadingDays"></i><button *ngFor="let day of calendarDays" type="button" [disabled]="!dayEnabled(day)" [attr.aria-pressed]="selectedDate===day.date" (click)="chooseDate(day)" [attr.aria-label]="dateText(day.date)+', '+dayLabel(day)"><b>{{day.date.slice(-2)}}</b><small>{{dayLabel(day)}}</small></button></div>
+            <p class="booking-hint">Dates proposées jusqu’au {{dateText(policy?.maxDate??'')}}. Préavis minimum : {{policy?.minimumNoticeMinutes}} minutes.</p>
+          </section>
+          <h2 id="booking-hours" tabindex="-1" class="hours-title">Choisir une heure <span *ngIf="selectedDate">· {{dateText(selectedDate,{day:'numeric',month:'long'})}}</span></h2>
+          <p class="booking-hint" *ngIf="!selectedService">Choisissez d’abord un service.</p>
+          <p class="booking-hint" *ngIf="selectedService&&!selectedDate">Choisissez un jour pour consulter les horaires disponibles.</p>
+          <p *ngIf="slotsLoading" class="booking-hint" role="status">Recherche des horaires disponibles…</p>
+          <div *ngIf="slotsError" class="notice notice-error" role="alert">{{slotsError}} <button type="button" class="small-action" (click)="loadSlots()">Réessayer</button></div>
+          <p *ngIf="selectedService&&selectedDate&&!slotsLoading&&!slotsError&&!slots.length" class="booking-empty" role="status">Aucun horaire disponible à cette date. Choisissez un autre jour.</p>
+          <div class="booking-times" role="group" aria-label="Horaires disponibles" *ngIf="!slotsLoading&&!slotsError"><button type="button" *ngFor="let slot of slots" [attr.aria-pressed]="selectedSlot?.startsAt===slot.startsAt" (click)="chooseSlot(slot)">{{time(slot.startsAt)}}<span class="sr-only" *ngIf="selectedSlot?.startsAt===slot.startsAt"> sélectionné</span></button></div>
+          <p class="booking-hint">Les horaires sont affichés en heure locale du cabinet ({{policy?.timeZone}}).</p>
+        </fieldset>
+        <fieldset [disabled]="busy || !!success || !services.length"><legend><span>3</span> Préciser votre demande</legend><label for="booking-reason">Motif du rendez-vous <span class="optional">· Facultatif</span></label><textarea id="booking-reason" formControlName="reason" maxlength="500" rows="4" placeholder="Quelques mots pour préparer votre consultation…"></textarea><p class="booking-hint">500 caractères maximum. Vos coordonnées sont reprises depuis votre compte.</p></fieldset>
+      </form>
+      <aside class="booking-sidebar" aria-label="Récapitulatif du rendez-vous">
+        <section class="consultation-summary"><span class="eyebrow">VOTRE PRATICIEN</span><div class="selected-doctor"><span class="doctor-monogram" aria-hidden="true">{{doctor.fullName.charAt(0)}}</span><div><h2>{{doctor.fullName || doctor.serviceTitle}}</h2><p>{{doctor.specialty}}</p></div></div><p class="consultation-place">⌖ {{doctor.location || 'Adresse non renseignée'}}</p><hr><h3>Votre rendez-vous</h3><dl aria-live="polite" aria-atomic="true"><div><dt>Service</dt><dd>{{selectedService?.name || '—'}}</dd></div><div><dt>Date</dt><dd>{{selectedDate?dateText(selectedDate):'—'}}</dd></div><div><dt>Heure</dt><dd>{{selectedSlot?time(selectedSlot.startsAt):'—'}}</dd></div></dl><div class="consultation-price"><span>Tarif de la consultation</span><b>{{selectedService?.price || '—'}}</b></div><p *ngIf="!selectedService" class="booking-hint">Le tarif s’affichera après le choix du service.</p><button type="submit" form="patient-booking-form" class="button button-primary booking-submit" [disabled]="!canSubmit">{{busy?'Envoi en cours…':'Envoyer ma demande'}} <span aria-hidden="true">→</span></button><p class="booking-hint">Votre demande sera en attente de confirmation par le médecin. Aucun paiement n’est effectué ici.</p></section>
+        <p class="privacy-note">♧ Vos informations restent confidentielles.</p>
+      </aside>
+    </div>
+  </main>
+</div>

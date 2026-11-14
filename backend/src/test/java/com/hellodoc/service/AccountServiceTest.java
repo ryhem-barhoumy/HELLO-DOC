@@ -28,9 +28,9 @@ class AccountServiceTest {
   UserRepository users=mock(UserRepository.class); DoctorApplicationRepository applications=mock(DoctorApplicationRepository.class); PatientRepository patients=mock(PatientRepository.class); BCryptPasswordEncoder encoder=new BCryptPasswordEncoder();
   when(users.existsByEmailIgnoreCase("doctor@example.com")).thenReturn(false); when(users.save(any(UserAccount.class))).thenAnswer(invocation->invocation.getArgument(0));
   when(applications.save(any(DoctorApplication.class))).thenAnswer(invocation->invocation.getArgument(0));
-  var body=new DoctorRegistrationRequest("D","Person","doctor@example.com","555","Clinic","password-123",true,"Cardiology","LIC-1","Dr D",30,"08:00","16:00",java.util.List.of("1"),10,"Clinic address","Tunis","Description",java.util.List.of(new DoctorRegistrationRequest.ServiceInput("Visit","50 DT")));
+  var body=new DoctorRegistrationRequest("Doctor","Person","doctor@example.com","22123456","Clinic","password-123",true,"Cardiology","LIC-1","Tunis");
   DoctorDocumentStorageService documents=mock(DoctorDocumentStorageService.class);when(documents.store(any())).thenReturn(new DoctorDocumentStorageService.StoredDocument(java.util.UUID.randomUUID()+".pdf","attestation.pdf","application/pdf",42));
   var created=new AccountService(users,encoder,applications,new ObjectMapper(),new com.hellodoc.service.PatientProfileService(users,patients,encoder),documents).registerDoctor(body,mock(org.springframework.web.multipart.MultipartFile.class));
-  assertEquals(UserRole.USER,created.getUser().getRole()); assertEquals("PENDING",created.getStatus()); assertTrue(encoder.matches("password-123",created.getUser().getPasswordHash()));
+  assertEquals(UserRole.USER,created.getUser().getRole()); assertEquals("PENDING",created.getStatus()); assertEquals("[]",created.getServicesJson()); assertEquals("[]",created.getWorkingDaysJson()); assertTrue(encoder.matches("password-123",created.getUser().getPasswordHash()));
  }
 }

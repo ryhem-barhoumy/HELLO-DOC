@@ -1,23 +1,101 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin, Subscription } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { AppointmentService } from '../../core/services/domain.services';
+import { AuthService } from '../../core/services/auth.service';
+import { IconComponent } from '../../shared/icon.component';
+import { MedicalService, TimeSlot } from '../../core/models/api.models';
 
-@Component({selector:'app-booking',standalone:true,imports:[CommonModule,ReactiveFormsModule,RouterLink],template:`
-<main class="public-page"><header class="site-header"><a class="brand" routerLink="/"><span class="brand-mark">+</span> hello<span>doc</span></a><a class="text-link" [routerLink]="['/patient/medecins',doctorId]">← Retour au profil</a></header><section class="booking-wrap"><span class="eyebrow">NOUVEAU RENDEZ-VOUS</span><h1>Choisissez votre consultation</h1><p class="muted">{{ doctor?.serviceTitle || doctor?.fullName || 'Chargement du médecin…' }} <span *ngIf="doctor?.specialty">· {{ doctor.specialty }}</span></p><div class="notice notice-error" *ngIf="error">{{ error }}</div><div class="notice notice-info" *ngIf="success">{{ success }} <a routerLink="/patient/rendez-vous">Voir mes rendez-vous</a></div><div class="loading-panel" *ngIf="loadingDoctor"><span class="spinner"></span> Chargement des informations du médecin…</div><form *ngIf="doctor" [formGroup]="form" (ngSubmit)="submit()" class="booking-card"><div class="form-grid"><label class="full">Service<select formControlName="serviceName"><option value="">Choisir un service</option><option *ngFor="let service of services" [value]="service.name">{{ service.name }} — {{ service.price }}</option></select></label><div class="full availability-picker"><div class="availability-month"><button type="button" (click)="changeMonth(-1)" aria-label="Mois précédent">‹</button><b>{{monthLabel}}</b><button type="button" (click)="changeMonth(1)" aria-label="Mois suivant">›</button></div><div class="availability-days"><span *ngFor="let day of weekDays">{{day}}</span><i *ngFor="let blank of leadingDays"></i><button type="button" *ngFor="let day of calendarDays" [disabled]="day.status!=='AVAILABLE'" [class.available]="day.status==='AVAILABLE'" [class.selected]="form.controls.date.value===day.date" (click)="chooseDate(day.date)">{{day.date.slice(-2)}}<small *ngIf="day.status==='AVAILABLE'">{{day.availableSlots}}</small></button></div><p class="field-note">Vert : {{'disponible'}} · Gris : jour fermé, absent, complet ou passé · délai minimum : 60 minutes · réservation dans les 60 prochains jours.</p></div><label>Date souhaitée<input type="date" formControlName="date" [min]="today" [max]="maxDate" (change)="loadSlots()"></label><label>Créneau disponible<select formControlName="startAt"><option value="">{{ slotsLoading?'Chargement…':slots.length?'Choisir une heure':'Choisissez une date disponible dans le calendrier' }}</option><option *ngFor="let slot of slots" [value]="slot.startsAt">{{ slot.periodLabel }} · {{ slot.startsAt | date:'HH:mm' }} – {{ slot.endsAt | date:'HH:mm' }}</option></select></label><div class="full notice notice-info" *ngIf="selectedDateMessage">{{selectedDateMessage}}<a *ngIf="nextAvailableDate" [routerLink]="['/patient/reserver',doctorId]" [queryParams]="{date:nextAvailableDate}"> Voir cette disponibilité</a></div><div class="full price-summary"><span>Tarif du service sélectionné</span><b>{{ selectedPrice || 'Sélectionnez un service' }}</b></div><label class="full">Informations complémentaires<textarea rows="4" formControlName="reason" maxlength="500" placeholder="Précisez brièvement le motif de votre demande"></textarea></label></div><button class="button button-primary submit-button" [disabled]="busy||!!success||!slots.length">{{ busy?'Envoi…':'Envoyer la demande de rendez-vous' }} <span>→</span></button><p class="field-note">Le rendez-vous sera enregistré en attente de la réponse du médecin. Vos coordonnées seront reprises de votre compte.</p></form></section></main>`})
+interface Doctor { fullName: string; serviceTitle: string; specialty: string; location: string; services: MedicalService[]; }
+interface CalendarDay { date: string; status: string; availableSlots: number; }
+interface BookingPolicy { timeZone: string; minDate: string; maxDate: string; minimumNoticeMinutes: number; }
+@Component({selector:'app-booking',standalone:true,
+  imports:[CommonModule,ReactiveFormsModule,RouterLink,IconComponent],
+  templateUrl:'./booking.component.html'})
 export class BookingComponent implements OnInit {
-  private route=inject(ActivatedRoute); private api=inject(ApiService); private appointments=inject(AppointmentService); private fb=inject(FormBuilder);
-  doctorId=this.route.snapshot.paramMap.get('doctorId')??''; doctor:any=null; services:any[]=[]; slots:any[]=[]; calendarDays:any[]=[];error=''; success=''; loadingDoctor=true; slotsLoading=false; busy=false;monthCursor=new Date(new Date().getFullYear(),new Date().getMonth(),1);weekDays=['L','M','M','J','V','S','D'];
-  today=this.dateKey(new Date());maxDate=this.dateKey(new Date(Date.now()+60*86400000));selectedDateMessage='';nextAvailableDate:string|null=null;get monthLabel(){return new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'}).format(this.monthCursor);}get leadingDays(){return Array.from({length:(this.monthCursor.getDay()+6)%7});}
-  form=this.fb.group({serviceName:['',[Validators.required,Validators.maxLength(160)]],date:['',[Validators.required]],startAt:['',[Validators.required]],reason:['',[Validators.maxLength(500)]]});
-  get selectedPrice(){const name=this.form.controls.serviceName.value;return this.services.find(x=>x.name===name)?.price??'';}get slotGroups(){return ['Première plage','Deuxième plage'].map(label=>({label,slots:this.slots.filter(s=>s.periodLabel===label)})).filter(g=>g.slots.length);}
-  dateKey(date:Date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
-  ngOnInit(){const requested=this.route.snapshot.queryParamMap.get('date');this.api.get<any>(`/doctors/${this.doctorId}`).subscribe({next:d=>{this.doctor=d;this.services=d.services??[];this.loadingDoctor=false;this.loadCalendar();if(requested){this.form.controls.date.setValue(requested);this.monthCursor=new Date(`${requested}T12:00:00`);this.loadSlots();}},error:e=>{this.error=e.message;this.loadingDoctor=false;}});}
-  changeMonth(offset:number){this.monthCursor=new Date(this.monthCursor.getFullYear(),this.monthCursor.getMonth()+offset,1);this.loadCalendar();}
-  loadCalendar(){const month=`${this.monthCursor.getFullYear()}-${String(this.monthCursor.getMonth()+1).padStart(2,'0')}`;this.api.get<any>(`/doctors/${this.doctorId}/availability-calendar`,{month}).subscribe({next:r=>this.calendarDays=Array.isArray(r)?r:[],error:e=>this.error=e.message||'Impossible de charger le calendrier des disponibilités.'});}
-  chooseDate(date:string){this.form.controls.date.setValue(date);this.loadSlots();}
-  loadSlots(){const date=this.form.controls.date.value;if(!date)return;this.error='';this.selectedDateMessage='';this.nextAvailableDate=null;this.form.controls.startAt.setValue('');this.slotsLoading=true;this.api.get<any>(`/doctors/${this.doctorId}/slots`,{date}).subscribe({next:r=>{this.slots=Array.isArray(r)?r:r?.content??r?.slots??[];this.slotsLoading=false;if(!this.slots.length){const day=this.calendarDays.find(x=>x.date===date);const dateObj=new Date(`${date}T12:00:00`);const dayName=new Intl.DateTimeFormat('fr-FR',{weekday:'long'}).format(dateObj);const doctorName=String(this.doctor?.fullName||'').replace(/^Dr\.?\s*/i,'');if(day?.status==='DAY_OFF')this.selectedDateMessage=`Dr ${doctorName} ne consulte pas le ${dayName}.`;else if(day?.status==='ABSENT')this.selectedDateMessage='Médecin indisponible ce jour.';else if(day?.status==='FULL')this.selectedDateMessage='Tous les créneaux de ce jour sont réservés ou trop proches.';else if(day?.status==='PAST')this.selectedDateMessage='Cette date est passée.';this.nextAvailableDate=this.calendarDays.find(x=>x.date>date&&x.status==='AVAILABLE')?.date??null;}},error:e=>{this.slots=[];this.slotsLoading=false;this.error=e.message;}});}
-  submit(){this.error='';this.form.markAllAsTouched();if(this.form.invalid){this.error='Sélectionnez un service et un créneau disponible.';return;}if(this.form.controls.date.value!<this.today){this.error='La date du rendez-vous doit être aujourd’hui ou ultérieure.';return;}const value=this.form.getRawValue();this.busy=true;this.appointments.create({doctorId:this.doctorId,serviceName:value.serviceName!,startAt:value.startAt!,reason:value.reason??undefined}).subscribe({next:()=>{this.busy=false;this.success='Votre demande a été envoyée. Elle apparaîtra dans la liste de vos rendez-vous.';},error:e=>{this.busy=false;this.error=e.message;this.loadSlots();}});}
+  private route=inject(ActivatedRoute); private api=inject(ApiService);
+  private appointments=inject(AppointmentService); private fb=inject(FormBuilder);
+  readonly auth=inject(AuthService); private destroy=inject(DestroyRef);
+  private doctorRequest?:Subscription; private calendarRequest?:Subscription; private slotRequest?:Subscription;
+  private slotGeneration=0; private calendarGeneration=0;
+  doctorId=''; doctor:Doctor|null=null; policy:BookingPolicy|null=null;
+  services:MedicalService[]=[]; slots:TimeSlot[]=[]; calendarDays:CalendarDay[]=[];
+  loadingDoctor=true; slotsLoading=false; calendarLoading=false; busy=false;
+  profileError=''; calendarError=''; slotsError=''; error=''; success='';
+  isMobile=typeof window!=='undefined'&&window.matchMedia('(max-width:760px)').matches;
+  @HostListener('window:resize') resize(){this.isMobile=window.matchMedia('(max-width:760px)').matches;}
+  menuOpen=false; calendarOpen=false; logoutBusy=false;
+  month=''; dateOffset=0;
+  form=this.fb.nonNullable.group({serviceName:['',Validators.required],date:['',Validators.required],startAt:['',Validators.required],reason:['',Validators.maxLength(500)]});
+  constructor(){this.destroy.onDestroy(()=>{this.doctorRequest?.unsubscribe();this.calendarRequest?.unsubscribe();this.slotRequest?.unsubscribe();});}
+  ngOnInit(){
+    this.form.controls.serviceName.valueChanges.pipe(takeUntilDestroyed(this.destroy)).subscribe(()=>{this.error='';this.loadSlots();});
+    this.form.controls.date.valueChanges.pipe(takeUntilDestroyed(this.destroy)).subscribe(()=>{this.error='';this.loadSlots();});
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroy)).subscribe(params=>{this.doctorId=params.get('doctorId')??'';this.loadDoctor();});
+  }
+  @HostListener('document:keydown.escape') closeMenus(){
+    const wasCalendar=this.calendarOpen;this.menuOpen=false;this.calendarOpen=false;
+    if(typeof document!=='undefined'){const account=document.querySelector<HTMLDetailsElement>('.patient-booking .account-menu');if(account?.open){account.open=false;account.querySelector('summary')?.focus();}else if(wasCalendar)document.querySelector<HTMLElement>('.calendar-toggle')?.focus();}
+  }
+  get selectedService(){return this.services.find(s=>s.name===this.form.controls.serviceName.value);}
+  get selectedSlot(){return this.slots.find(s=>s.startsAt===this.form.controls.startAt.value);}
+  get selectedDate(){return this.form.controls.date.value;}
+  get canSubmit(){return !this.loadingDoctor&&!this.busy&&!this.success&&!this.slotsLoading&&!this.slotsError&&this.form.valid&&!!this.selectedService&&!!this.selectedSlot&&this.validDate(this.selectedDate);}
+  get patientName(){const u=this.auth.user();return u?`${u.firstName} ${u.lastName}`:'Mon compte';}
+  get monthLabel(){return this.month?new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'}).format(new Date(`${this.month}-01T12:00:00`)):'';}
+  get leadingDays(){return this.month?Array.from({length:(new Date(`${this.month}-01T12:00:00`).getDay()+6)%7}):[];}
+  get compactDays(){return this.calendarDays.filter(d=>this.policy&&d.date>=this.policy.minDate&&d.date<=this.policy.maxDate).slice(this.dateOffset,this.dateOffset+5);}
+  get hasMoreDays(){return this.calendarDays.filter(d=>this.policy&&d.date>=this.policy.minDate&&d.date<=this.policy.maxDate).length>this.dateOffset+5;}
+  dateText(date:string,options:Intl.DateTimeFormatOptions={weekday:'long',day:'numeric',month:'long'}){return date?new Intl.DateTimeFormat('fr-FR',options).format(new Date(`${date}T12:00:00`)):'—';}
+  time(instant:string){return new Intl.DateTimeFormat('fr-FR',{timeZone:this.policy?.timeZone??'Africa/Tunis',hour:'2-digit',minute:'2-digit'}).format(new Date(instant));}
+  validDate(date:string){return !!this.policy&&/^\d{4}-\d{2}-\d{2}$/.test(date)&&date>=this.policy.minDate&&date<=this.policy.maxDate;}
+  dayLabel(day:CalendarDay){if(day.status==='AVAILABLE'&&this.validDate(day.date))return `${day.availableSlots} horaire${day.availableSlots>1?'s':''}`;return ({PAST:'Date passée',DAY_OFF:'Fermé',ABSENT:'Indisponible',FULL:'Complet'} as Record<string,string>)[day.status]??'Indisponible';}
+  dayEnabled(day:CalendarDay){return !this.busy&&!this.success&&day.status==='AVAILABLE'&&this.validDate(day.date);}
+  loadDoctor(preserve=false){
+    this.doctorRequest?.unsubscribe();this.slotRequest?.unsubscribe();this.calendarRequest?.unsubscribe();this.slotGeneration++;this.calendarGeneration++;
+    this.loadingDoctor=true;this.profileError='';this.slots=[];this.slotsLoading=false;this.calendarLoading=false;
+    if(!preserve){this.doctor=null;this.policy=null;this.services=[];this.success='';this.form.reset({}, {emitEvent:false});}
+    this.doctorRequest=forkJoin({doctor:this.api.get<Doctor>(`/doctors/${this.doctorId}`),policy:this.api.get<BookingPolicy>(`/doctors/${this.doctorId}/booking-policy`)}).subscribe({
+      next:({doctor,policy})=>{this.doctor=doctor;this.policy=policy;this.services=(doctor.services??[]).filter(s=>s.name?.trim()&&s.price?.trim());this.loadingDoctor=false;
+        if(!this.selectedService)this.form.controls.serviceName.setValue('',{emitEvent:false});
+        const requested=preserve?this.selectedDate:this.route.snapshot.queryParamMap.get('date')??'';
+        const date=this.validDate(requested)?requested:'';this.form.controls.date.setValue(date,{emitEvent:false});
+        this.month=(date||policy.minDate).slice(0,7);this.loadCalendar();this.loadSlots();},
+      error:e=>{this.loadingDoctor=false;this.profileError=e.message??'Impossible de charger le médecin. Réessayez.';}
+    });
+  }
+  loadCalendar(){
+    this.calendarRequest?.unsubscribe();const generation=++this.calendarGeneration;
+    this.calendarLoading=true;this.calendarError='';this.calendarDays=[];
+    this.calendarRequest=this.api.get<CalendarDay[]>(`/doctors/${this.doctorId}/availability-calendar`,{month:this.month}).subscribe({
+      next:days=>{if(generation!==this.calendarGeneration)return;this.calendarLoading=false;this.calendarDays=days;const index=days.filter(d=>this.validDate(d.date)).findIndex(d=>d.date===this.selectedDate);this.dateOffset=index<0?0:Math.floor(index/5)*5;},
+      error:e=>{if(generation!==this.calendarGeneration)return;this.calendarLoading=false;this.calendarError=e.message??'Impossible de charger les dates.';}
+    });
+  }
+  moveMonth(offset:number){if(!this.policy||this.busy)return;const d=new Date(`${this.month}-01T12:00:00`);d.setMonth(d.getMonth()+offset);const month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;if(month<this.policy.minDate.slice(0,7)||month>this.policy.maxDate.slice(0,7))return;this.month=month;this.loadCalendar();}
+  chooseDate(day:CalendarDay){if(this.dayEnabled(day)){this.form.controls.date.setValue(day.date);const wasOpen=this.calendarOpen;this.calendarOpen=false;if(wasOpen&&typeof document!=='undefined')setTimeout(()=>document.getElementById('booking-hours')?.focus());}}
+  chooseSlot(slot:TimeSlot){if(!this.busy&&!this.success)this.form.controls.startAt.setValue(slot.startsAt);}
+  loadSlots(){
+    this.slotRequest?.unsubscribe();const generation=++this.slotGeneration;
+    this.form.controls.startAt.setValue('',{emitEvent:false});this.slots=[];this.slotsError='';this.slotsLoading=false;
+    if(!this.selectedService||!this.validDate(this.selectedDate)||this.loadingDoctor)return;
+    this.slotsLoading=true;
+    this.slotRequest=this.api.get<TimeSlot[]>(`/doctors/${this.doctorId}/slots`,{date:this.selectedDate}).subscribe({
+      next:rows=>{if(generation!==this.slotGeneration)return;const unique=new Map<number,TimeSlot>();
+        for(const slot of rows){const start=Date.parse(slot.startsAt),end=Date.parse(slot.endsAt);if(slot.status==='AVAILABLE'&&Number.isFinite(start)&&end>start&&new Intl.DateTimeFormat('en-CA',{timeZone:this.policy!.timeZone}).format(new Date(start))===this.selectedDate&&!unique.has(start))unique.set(start,slot);}
+        this.slots=[...unique.values()].sort((a,b)=>Date.parse(a.startsAt)-Date.parse(b.startsAt));this.slotsLoading=false;},
+      error:e=>{if(generation!==this.slotGeneration)return;this.slotsLoading=false;this.slotsError=e.message??'Impossible de charger les horaires.';}
+    });
+  }
+  submit(){
+    if(!this.canSubmit)return;this.busy=true;this.error='';const value=this.form.getRawValue();
+    this.appointments.create({doctorId:this.doctorId,serviceName:value.serviceName,startAt:value.startAt,reason:value.reason||undefined,expectedServicePrice:this.selectedService!.price})
+      .pipe(takeUntilDestroyed(this.destroy)).subscribe({next:appointment=>{this.busy=false;this.success=appointment.status==='CONFIRMED'?'Rendez-vous confirmé par le médecin.':'Demande envoyée, en attente de confirmation du médecin';this.form.disable({emitEvent:false});if(typeof document!=='undefined')setTimeout(()=>document.querySelector<HTMLElement>('.booking-success')?.focus());},
+        error:e=>{this.busy=false;this.error=e.status===409?`${e.message} Les disponibilités et le tarif vont être actualisés.`:e.message;if(e.status===409)this.loadDoctor(true);}});
+  }
+  logout(){if(this.logoutBusy)return;this.logoutBusy=true;this.auth.logout().subscribe({error:e=>{this.logoutBusy=false;this.error=e.message;}});}
 }

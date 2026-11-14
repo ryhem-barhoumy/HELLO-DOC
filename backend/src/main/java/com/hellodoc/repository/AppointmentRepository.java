@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface AppointmentRepository extends JpaRepository<Appointment,UUID> {
- @Query("select a from Appointment a where lower(a.patient.user.email)=lower(:email) and ((:history=false and a.startAt>=:now and a.status in :active) or (:history=true and (a.startAt<:now or a.status in :finished))) order by a.startAt desc")
+ @Query("select a from Appointment a where lower(a.patient.user.email)=lower(:email) and ((:history=false and (a.status=com.hellodoc.entity.AppointmentStatus.TO_RESCHEDULE or (a.startAt>=:now and a.status in :active))) or (:history=true and a.status<>com.hellodoc.entity.AppointmentStatus.TO_RESCHEDULE and (a.startAt<:now or a.status in :finished))) order by a.startAt desc")
  Page<Appointment> findPatientAppointments(@Param("email") String email,@Param("history") boolean history,@Param("now") Instant now,@Param("active") List<AppointmentStatus> active,@Param("finished") List<AppointmentStatus> finished,Pageable pageable);
  @Query("select a from Appointment a where lower(a.patient.user.email)=lower(:email) and a.startAt>=:now and a.status in :active order by a.startAt asc")
  List<Appointment> findNextPatientAppointments(@Param("email") String email,@Param("now") Instant now,@Param("active") List<AppointmentStatus> active,Pageable pageable);
@@ -24,8 +24,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment,UUID> {
  List<Appointment> findOverlapping(@Param("doctorId") UUID doctorId,@Param("statuses") List<AppointmentStatus> statuses,@Param("from") Instant from,@Param("to") Instant to);
  @Query("select a from Appointment a where a.id=:id and (lower(a.patient.user.email)=lower(:email) or lower(a.doctor.user.email)=lower(:email))")
  Optional<Appointment> findOwned(@Param("id") UUID id,@Param("email") String email);
- @Query("select count(a) from Appointment a where a.patient.user.id=:userId and a.startAt>=:now and a.status in :statuses") long countPatientUpcoming(@Param("userId") UUID userId,@Param("now") Instant now,@Param("statuses") List<AppointmentStatus> statuses);
- @Query("select count(a) from Appointment a where a.patient.user.id=:userId and (a.startAt<:now or a.status in :finished)") long countPatientPast(@Param("userId") UUID userId,@Param("now") Instant now,@Param("finished") List<AppointmentStatus> finished);
+ @Query("select count(a) from Appointment a where a.patient.user.id=:userId and (a.status=com.hellodoc.entity.AppointmentStatus.TO_RESCHEDULE or (a.startAt>=:now and a.status in :statuses))") long countPatientUpcoming(@Param("userId") UUID userId,@Param("now") Instant now,@Param("statuses") List<AppointmentStatus> statuses);
+ @Query("select count(a) from Appointment a where a.patient.user.id=:userId and a.status<>com.hellodoc.entity.AppointmentStatus.TO_RESCHEDULE and (a.startAt<:now or a.status in :finished)") long countPatientPast(@Param("userId") UUID userId,@Param("now") Instant now,@Param("finished") List<AppointmentStatus> finished);
  long countByDoctorIdAndStatusIn(UUID doctorId,List<AppointmentStatus> statuses);
  long countByDoctorIdAndStatus(UUID doctorId,AppointmentStatus status);
  @Query("select count(a) from Appointment a where a.doctor.id=:doctorId and a.status=:status and a.startAt>=:now") long countDoctorUpcomingStatus(@Param("doctorId") UUID doctorId,@Param("status") AppointmentStatus status,@Param("now") Instant now);

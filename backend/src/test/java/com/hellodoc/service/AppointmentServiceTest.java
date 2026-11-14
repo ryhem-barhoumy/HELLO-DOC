@@ -39,4 +39,15 @@ class AppointmentServiceTest {
         var request=new com.hellodoc.dto.AppointmentCreateRequest(doctorId,"Consultation",Instant.now(),null);
         assertEquals(404,assertThrows(ResponseStatusException.class,()->service.book(email,request)).getStatusCode().value());verifyNoInteractions(repository);
     }
+    @Test void bookingRejectsAChangedDisplayedPriceBeforeReserving(){
+        AppointmentRepository repository=mock(AppointmentRepository.class);UserRepository users=mock(UserRepository.class);DoctorRepository doctors=mock(DoctorRepository.class);DoctorProfileService profiles=mock(DoctorProfileService.class);
+        String email="patient@example.test";UUID doctorId=UUID.randomUUID();UserAccount patient=new UserAccount("Pat","Test",email,"hash",UserRole.USER,"ACTIVE");
+        Doctor doctor=mock(Doctor.class);when(doctor.getUser()).thenReturn(new UserAccount("Dr","Test","doctor@example.test","hash",UserRole.DOCTOR,"ACTIVE"));
+        when(users.findByEmailIgnoreCase(email)).thenReturn(Optional.of(patient));when(doctors.lockActiveById(doctorId)).thenReturn(Optional.of(doctor));
+        when(profiles.servicesFor(doctor)).thenReturn(List.of(new com.hellodoc.dto.MedicalServiceDto("Consultation","65 DT")));
+        AppointmentService service=new AppointmentService(repository,mock(AppointmentStatusHistoryRepository.class),mock(ReviewRepository.class),doctors,mock(PatientRepository.class),users,profiles,mock(NotificationService.class),new ObjectMapper());
+        var request=new com.hellodoc.dto.AppointmentCreateRequest(doctorId,"Consultation",Instant.now().plusSeconds(86400),null,"50 DT");
+        assertEquals(409,assertThrows(ResponseStatusException.class,()->service.book(email,request)).getStatusCode().value());verifyNoInteractions(repository);
+    }
+
 }

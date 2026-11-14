@@ -53,7 +53,7 @@ Hibernate creates/updates the `users` table. Database credentials and the initia
 - `POST /api/appointments` books a selected doctor/service/start time for the patient identified by the session. Contact details and patient identifiers are never accepted from the request.
 - `GET /api/appointments/mine?history=false|true`, `GET /api/appointments/{id}`, `POST /api/appointments/{id}/cancellation`, `PATCH /api/appointments/{id}/status`, and `PUT /api/appointments/{id}/reschedule` support patient and doctor workflows with participant ownership checks.
 - `GET /api/doctors/me/appointments` returns only the active doctor’s agenda. Rebooking and rescheduling revalidate the doctor’s weekly schedule, absences, duration, current time, and overlapping active appointments inside a transaction. A doctor row lock serializes competing requests and a unique reservation key prevents duplicate start times at the database level.
-- Statuses are `PENDING`, `CONFIRMED`, `COMPLETED`, `REJECTED`, `CANCELLED`, and `NO_SHOW`; every transition is stored in `appointment_status_history`.
+- Statuses are `PENDING`, `CONFIRMED`, `TO_RESCHEDULE`, `COMPLETED`, `REJECTED`, `CANCELLED`, and `NO_SHOW`; every transition is stored in `appointment_status_history`.
 - `GET /api/notifications` lists only the signed-in patient’s or active doctor’s notifications; `PATCH /api/notifications/{id}/read` marks only that recipient’s notification as read. Appointment requests, decisions, cancellations, rescheduling, and new reviews create persisted notifications in the same transaction.
 - `POST /api/appointments/{id}/review` creates or edits the signed-in patient’s single review after a completed consultation. `GET /api/doctors/me/reviews` lists reviews only for the active doctor’s own profile.
 
@@ -72,7 +72,7 @@ The Angular application models PATIENT, DOCTOR, ADMIN, and USER. Patient registr
 
 `GET /api/specialties` est public en lecture seule. Les spécialités de référence sont initialisées de façon idempotente dans tous les profils Spring Boot.
 
-`POST /api/doctors/registrations` accepte `multipart/form-data` avec une partie JSON `registration` (mêmes champs que le contrat JSON antérieur) et exactement une partie `document`. Le justificatif obligatoire est l’attestation d’inscription à l’Ordre des médecins avec cachet. Le serveur vérifie les signatures PDF/JPEG/PNG et limite le fichier à 5 Mo; le nom et le type déclarés par le navigateur ne servent pas à valider le contenu. Les fichiers sont stockés sous un nom aléatoire hors du dossier public, par défaut dans `${user.home}/.hellodoc/doctor-documents`; `HELLODOC_DOCUMENTS_DIR` permet de choisir un autre dossier privé.
+`POST /api/doctors/registrations` accepte `multipart/form-data` avec une partie JSON `registration` (coordonnées, spécialité, numéro professionnel, ville, mot de passe et consentement ; services et horaires configurés après approbation) et exactement une partie `document`. Le justificatif obligatoire est l’attestation d’inscription à l’Ordre des médecins avec cachet. Le serveur vérifie les signatures PDF/JPEG/PNG et limite le fichier à 5 Mo; le nom et le type déclarés par le navigateur ne servent pas à valider le contenu. Les fichiers sont stockés sous un nom aléatoire hors du dossier public, par défaut dans `${user.home}/.hellodoc/doctor-documents`; `HELLODOC_DOCUMENTS_DIR` permet de choisir un autre dossier privé.
 
 Le téléchargement est disponible uniquement à l’administration via `GET /api/admin/doctors/{applicationId}/document`. Les demandes sans document ne peuvent pas être approuvées.
 
@@ -88,3 +88,13 @@ Pour un envoi Gmail en local, lancer `./run-local.ps1` depuis `backend`, répond
 - `GET /api/admin/patients?page=0&size=50` renvoie les profils patients persistés.
 - `PATCH /api/admin/doctors/{doctorId}/status` et `PATCH /api/admin/patients/{patientId}/status` acceptent `{"status":"ACTIVE"}` ou `{"status":"INACTIVE"}`. Toutes ces routes sont réservées à ADMIN.
 - `GET /api/admin/doctors?status=PENDING` reste le répertoire des candidatures à approuver. Les écrans admin des rendez-vous, notifications et journal d’activité attendent encore leurs lots respectifs; l’interface les signale au lieu d’appeler des routes absentes.
+
+## Contrat d'inscription et d'absence actualisé
+
+La partie JSON `registration` de l’inscription médecin contient uniquement `firstName`, `lastName`, `email`, `phone`, `address`, `password`, `consent`, `specialty`, `licenseNumber` et `city`. La partie fichier `document` reste obligatoire. Aucun service, tarif ou horaire n’est créé pendant l’inscription. Le médecin approuvé les configure via PUT `/api/doctors/me` (profil et services) et PUT `/api/doctors/me/availabilities/weekly` (horaires et durées). Le profil ne reçoit plus de champs horaires ignorés.
+
+POST `/api/doctors/me/absences/preview` accepte le même objet que la création d’absence et renvoie `{ "affectedAppointments": n }` sans mutation. Si des rendez-vous sont touchés, POST/PUT d’absence exigent `confirmRescheduling: true`, sinon renvoient HTTP 409. Les patients sont invités par notification interne à reprogrammer ; aucun motif privé d’absence n’est partagé. La nouvelle réservation issue de `TO_RESCHEDULE` repasse à `PENDING`.
+
+GET/PUT `/api/admin/me` lisent/modifient les coordonnées de l’administrateur actif ; PUT demande `currentPassword`.
+
+`python verify-workflows.py` lance dix scénarios HTTP sur une base MySQL temporaire `hello_doc_qa_*`, puis arrête le serveur et supprime uniquement cette base. Il nécessite le jar construit, MySQL Laragon local et le port 8081 libre. Ce script n’est pas destiné à la production ; ses identifiants fixes n’existent que dans sa base jetable.

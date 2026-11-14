@@ -12,7 +12,7 @@ export const csrfInterceptor: HttpInterceptorFn = (request, next) => {
 export const apiErrorInterceptor: HttpInterceptorFn = (request, next) => next(request).pipe(
   catchError((error: HttpErrorResponse) => {
     const message = error.status === 0 ? 'Le service Hello Doc est momentanément indisponible. Réessayez plus tard.'
-      : error.status === 401 ? 'Votre session a expiré. Connectez-vous à nouveau.'
+      : error.status === 401 ? (request.url.endsWith('/auth/login') ? 'L’adresse e-mail ou le mot de passe est incorrect.' : error.error?.message ?? 'Votre session a expiré. Connectez-vous à nouveau.')
       : error.error?.message ?? 'Une erreur est survenue. Vérifiez les informations puis réessayez.';
     return throwError(() => ({ status: error.status, message, fieldErrors: error.error?.fieldErrors }));
   })

@@ -36,18 +36,16 @@ public class AccountService {
  @Transactional public DoctorApplication registerDoctor(DoctorRegistrationRequest request,MultipartFile document){
   String email=request.email().trim().toLowerCase();
   if(users.existsByEmailIgnoreCase(email))throw new ResponseStatusException(HttpStatus.CONFLICT,"An account with this email already exists.");
-  validateRegistrationHours(request);
   DoctorDocumentStorageService.StoredDocument stored=documents.store(document);
   try {
    UserAccount user=users.save(new UserAccount(request.firstName().trim(),request.lastName().trim(),email,request.phone(),request.address(),passwords.encode(request.password()),UserRole.USER,"PENDING"));
-   String days=json.writeValueAsString(request.workingDays()); String services=json.writeValueAsString(request.services());
-     DoctorApplication application=new DoctorApplication(user,request.serviceTitle().trim(),request.specialty().trim(),request.licenseNumber().trim(),request.city().trim(),request.location().trim(),request.durationMinutes(),request.workStart(),request.workEnd(),request.pauseMinutes(),days,services,request.description().trim());
-     application.setSecondWorkWindow(request.secondWorkStart(),request.secondWorkEnd());
+
+   // No working hours or services are invented during registration.
+   DoctorApplication application=new DoctorApplication(user,"Dr "+request.firstName().trim()+" "+request.lastName().trim(),request.specialty().trim(),request.licenseNumber().trim(),request.city().trim(),request.address().trim(),30,"","",0,"[]","[]","");
    application.attachDoctorDocument(stored.storageKey(),stored.originalName(),stored.mediaType(),stored.sizeBytes());
    DoctorApplication saved=applications.save(application);
    if(TransactionSynchronizationManager.isSynchronizationActive())TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization(){@Override public void afterCompletion(int status){if(status!=STATUS_COMMITTED)documents.delete(stored.storageKey());}});
    return saved;
-  } catch(JsonProcessingException|RuntimeException ex){documents.delete(stored.storageKey());if(ex instanceof RuntimeException runtime)throw runtime;throw new IllegalStateException("Could not store doctor registration details",ex);}
+  } catch(RuntimeException ex){documents.delete(stored.storageKey());throw ex;}
  }
- private void validateRegistrationHours(DoctorRegistrationRequest request){try{LocalTime firstStart=LocalTime.parse(request.workStart()),firstEnd=LocalTime.parse(request.workEnd());if(!firstEnd.isAfter(firstStart)||firstStart.getMinute()%5!=0||firstEnd.getMinute()%5!=0||Duration.between(firstStart,firstEnd).toMinutes()<request.durationMinutes())throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"La première plage doit respecter les pas de 5 minutes et contenir un créneau complet.");if((request.secondWorkStart()==null)!=(request.secondWorkEnd()==null))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Renseignez le début et la fin de la deuxième plage, ou laissez les deux champs vides.");if(request.secondWorkStart()!=null){LocalTime secondStart=LocalTime.parse(request.secondWorkStart()),secondEnd=LocalTime.parse(request.secondWorkEnd());if(!secondStart.isAfter(firstEnd)||!secondEnd.isAfter(secondStart)||secondStart.getMinute()%5!=0||secondEnd.getMinute()%5!=0||Duration.between(secondStart,secondEnd).toMinutes()<request.durationMinutes())throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"La deuxième plage doit commencer après la première, respecter les pas de 5 minutes et contenir un créneau complet.");}if(request.durationMinutes()%5!=0)throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"La durée de consultation doit être un multiple de 5 minutes.");}catch(java.time.format.DateTimeParseException ex){throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"Utilisez le format HH:mm pour les horaires.");}}
 }

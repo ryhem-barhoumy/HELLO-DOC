@@ -9,6 +9,7 @@ import com.hellodoc.repository.DoctorApplicationRepository;
 import com.hellodoc.repository.UserRepository;
 import com.hellodoc.service.DoctorApprovalService;
 import com.hellodoc.service.AdminDirectoryService;
+import com.hellodoc.service.AdminProfileService;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -22,9 +23,10 @@ import java.util.UUID;
 @RequestMapping("/api/admin")
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
- private final UserRepository users; private final DoctorApplicationRepository applications; private final DoctorApprovalService approvals; private final AdminDirectoryService directory;
- public AdminController(UserRepository users,DoctorApplicationRepository applications,DoctorApprovalService approvals,AdminDirectoryService directory){this.users=users;this.applications=applications;this.approvals=approvals;this.directory=directory;}
- @GetMapping("/me") public SessionUser me(Authentication auth){return SessionUser.from(users.findByEmailIgnoreCase(auth.getName()).orElseThrow());}
+ private final UserRepository users; private final DoctorApplicationRepository applications; private final DoctorApprovalService approvals; private final AdminDirectoryService directory; private final AdminProfileService profiles;
+ public AdminController(UserRepository users,DoctorApplicationRepository applications,DoctorApprovalService approvals,AdminDirectoryService directory,AdminProfileService profiles){this.users=users;this.applications=applications;this.approvals=approvals;this.directory=directory;this.profiles=profiles;}
+ @GetMapping("/me") public com.hellodoc.dto.PatientProfileDto me(Authentication auth){return profiles.get(auth.getName());}
+ @PutMapping("/me") public com.hellodoc.dto.PatientProfileDto update(Authentication auth,@Valid @RequestBody com.hellodoc.dto.PatientProfileUpdateRequest request){return profiles.update(auth.getName(),request);}
  @GetMapping("/dashboard") public Map<String,Object> dashboard(){
   return Map.of("asOf",Instant.now().toString(),"patientsCount",users.countByRoleAndStatus(UserRole.USER,"ACTIVE")+users.countByRole(UserRole.PATIENT),
    "doctorsCount",users.countByRole(UserRole.DOCTOR),"pendingDoctorApprovals",applications.countByStatus("PENDING"));
