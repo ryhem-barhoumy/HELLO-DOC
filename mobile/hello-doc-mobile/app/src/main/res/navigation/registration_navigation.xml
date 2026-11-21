@@ -1,0 +1,3 @@
+<navigation xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/registration_navigation" app:startDestination="@id/registerFragment">
+ <fragment android:id="@+id/registerFragment" android:name="tn.rnu.isetr.hellodoc.ui.auth.RegisterFragment" android:label="@string/register_toolbar"><argument android:name="doctor" app:argType="boolean" android:defaultValue="false"/></fragment>
+</navigation>

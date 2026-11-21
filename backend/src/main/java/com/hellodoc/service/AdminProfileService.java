@@ -43,7 +43,7 @@ public class AdminProfileService {
 
     private PatientProfileDto dto(UserAccount user) {
         return new PatientProfileDto(user.getId(), user.getFirstName(), user.getLastName(),
-                user.getFirstName() + " " + user.getLastName(), user.getEmail(), user.getPhone(), user.getAddress());
+                user.getFirstName() + " " + user.getLastName(), user.getEmail(), user.getPhone(), user.getAddress(),user.ownPhotoUrl());
     }
 
     private String clean(String value) { return value == null || value.isBlank() ? null : value.trim(); }

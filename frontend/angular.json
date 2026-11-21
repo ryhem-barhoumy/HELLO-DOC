@@ -21,10 +21,15 @@
             "assets": [
               { "glob": "**/*", "input": "src/assets", "output": "assets" }
             ],
-            "styles": ["src/styles.css", "src/workspace.css", "src/patient-booking.css"],
+            "styles": ["src/styles.css", "src/workspace.css", "src/patient-booking.css", "src/product.css", "src/cabinet.css", "src/doctor-editors.css"],
             "scripts": []
           },
           "configurations": {
+            "qa": {
+              "optimization": false,
+              "sourceMap": true,
+              "fileReplacements": [{"replace":"src/environments/environment.ts","with":"src/environments/environment.qa.ts"}]
+            },
             "production": {
               "budgets": [
                 { "type": "initial", "maximumWarning": "500kB", "maximumError": "2MB" },
@@ -43,6 +48,7 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
+            "qa": {"buildTarget":"hello-doc-angular:build:qa","proxyConfig":"proxy.qa.json","port":4201},
             "production": { "buildTarget": "hello-doc-angular:build:production" },
             "development": { "buildTarget": "hello-doc-angular:build:development" }
           },

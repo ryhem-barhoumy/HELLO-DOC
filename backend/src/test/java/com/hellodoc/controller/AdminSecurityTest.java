@@ -58,7 +58,7 @@ class AdminSecurityTest {
   mvc.perform(get("/api/admin/patients")).andExpect(status().isForbidden());
  }
  @Test @WithMockUser(roles="ADMIN") void adminApprovalPromotesPersistedPendingAccount() throws Exception {
-  UUID id=UUID.randomUUID();when(approvals.approve(eq(id),any())).thenReturn(new DoctorApplicationSummary(id,"Doctor","Example","d@example.com","555","Doctor Example","Doctor Example","Dr Example","Cardiology","LIC-1","Tunis","Clinic","Clinic","Home","APPROVED","",true));
+  UUID id=UUID.randomUUID();when(approvals.approve(eq(id),any())).thenReturn(new DoctorApplicationSummary(id,"Doctor","Example","d@example.com","555","Doctor Example","Doctor Example","Dr Example","Cardiology","LIC-1","Tunis","Clinic","Clinic","Home","APPROVED","",true,"QUEUED"));
   mvc.perform(post("/api/admin/doctors/"+id+"/approve").with(csrf()).contentType("application/json").content("{}"))
    .andExpect(status().isOk());
   verify(approvals).approve(eq(id),any());

@@ -1,8 +1,10 @@
+import { WorkspaceFooterComponent } from '../../shared/workspace-footer.component';
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { environment } from '../../../environments/environment';
+import { ApprovalEmailComponent } from './approval-email.component';
 
 interface AdminDoctor {
   id: string;
@@ -24,7 +26,7 @@ interface AdminDoctor {
 @Component({
   selector: 'app-admin-doctor-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [WorkspaceFooterComponent,CommonModule, RouterLink, ApprovalEmailComponent],
   template: `
     <main class="admin-doctor-detail">
       <a class="back-link" routerLink="/admin/medecins">← Retour aux médecins</a>
@@ -57,8 +59,9 @@ interface AdminDoctor {
           <a *ngIf="d.hasDocument" class="document-button" [href]="documentUrl(d)" target="_blank" rel="noopener">Ouvrir l’attestation</a>
           <span *ngIf="!d.hasDocument" class="missing-document">Aucun justificatif enregistré pour cette candidature.</span>
         </section>
+        <app-approval-email *ngIf="d.status==='ACTIVE'" [applicationId]="d.applicationId"></app-approval-email>
       </ng-container>
-    </main>
+    </main><app-workspace-footer/>
   `,
   styles: [`
     :host{display:block;min-height:100vh;background:#f5f8f7;color:#173b36;font-family:inherit}

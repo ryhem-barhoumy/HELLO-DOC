@@ -1,6 +1,9 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { SessionState } from '../services/session-state.service';
 
 export const csrfInterceptor: HttpInterceptorFn = (request, next) => {
   const unsafe = !['GET','HEAD','OPTIONS'].includes(request.method.toUpperCase());
@@ -9,11 +12,16 @@ export const csrfInterceptor: HttpInterceptorFn = (request, next) => {
   return next(token ? request.clone({setHeaders:{'X-XSRF-TOKEN':decodeURIComponent(token)}}) : request);
 };
 
-export const apiErrorInterceptor: HttpInterceptorFn = (request, next) => next(request).pipe(
+export const apiErrorInterceptor: HttpInterceptorFn = (request, next) => {
+ const state=inject(SessionState);const router=inject(Router);
+ return next(request).pipe(
   catchError((error: HttpErrorResponse) => {
+    if(error.status===401&&['SESSION_REVOKED','UNAUTHORIZED'].includes(error.error?.code)&&state.user()){
+      state.user.set(null);void router.navigate(['/connexion'],{queryParams:{session:'expired'}});
+    }
     const message = error.status === 0 ? 'Le service Hello Doc est momentanément indisponible. Réessayez plus tard.'
       : error.status === 401 ? (request.url.endsWith('/auth/login') ? 'L’adresse e-mail ou le mot de passe est incorrect.' : error.error?.message ?? 'Votre session a expiré. Connectez-vous à nouveau.')
       : error.error?.message ?? 'Une erreur est survenue. Vérifiez les informations puis réessayez.';
-    return throwError(() => ({ status: error.status, message, fieldErrors: error.error?.fieldErrors }));
+    return throwError(() => ({ status: error.status, code:error.error?.code, message, fieldErrors: error.error?.fieldErrors }));
   })
-);
+);};

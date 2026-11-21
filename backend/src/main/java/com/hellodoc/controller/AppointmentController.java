@@ -29,9 +29,9 @@ public class AppointmentController {
     public AppointmentDto cancel(Authentication auth,@PathVariable UUID id,@Valid @RequestBody(required=false) DecisionRequest request){return appointments.cancel(auth.getName(),id,request==null?null:request.reason());}
     @PatchMapping("/{id}/status") @PreAuthorize("hasRole('DOCTOR')")
     public AppointmentDto status(Authentication auth,@PathVariable UUID id,@Valid @RequestBody AppointmentStatusRequest request){return appointments.changeStatus(auth.getName(),id,request);}
-    @GetMapping("/{id}/reschedule-options") @PreAuthorize("hasAnyRole('USER','PATIENT','DOCTOR')")
+    @GetMapping("/{id}/reschedule-options") @PreAuthorize("hasAnyRole('USER','PATIENT')")
     public java.util.List<com.hellodoc.dto.TimeSlotDto> rescheduleOptions(Authentication auth,@PathVariable UUID id,@RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate date){return appointments.rescheduleOptions(auth.getName(),id,date);}
-    @PutMapping("/{id}/reschedule") @PreAuthorize("hasAnyRole('USER','PATIENT','DOCTOR')")
+    @PutMapping("/{id}/reschedule") @PreAuthorize("hasAnyRole('USER','PATIENT')")
     public AppointmentDto reschedule(Authentication auth,@PathVariable UUID id,@Valid @RequestBody AppointmentRescheduleRequest request){return appointments.reschedule(auth.getName(),id,request);}
     @PostMapping("/{id}/review") @PreAuthorize("hasAnyRole('USER','PATIENT')")
     public ReviewDto review(Authentication auth,@PathVariable UUID id,@Valid @RequestBody ReviewCreateRequest request){return reviews.save(auth.getName(),id,request);}

@@ -5,8 +5,38 @@ node_modules/
 dist/
 **/dist/
 **/target/
+# Personal IDE settings and run configurations (may contain local credentials).
+**/.idea/
+**/.run/
+*.iml
 .env
 .env.*
 !**/.env.example
 **/.env.local
 **/application-local.properties
+
+# Local reports, screenshots, exercises and temporary working files.
+/output/
+/tmp/
+
+# Android/Gradle caches and generated packages (keep the Gradle wrapper).
+**/.gradle/
+**/.kotlin/
+**/build/
+**/local.properties
+**/.externalNativeBuild/
+**/.cxx/
+*.apk
+*.aab
+
+# Local logs, database files and signing credentials.
+*.log
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.jks
+*.keystore
+.DS_Store
+Thumbs.db

@@ -4,9 +4,15 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "start:qa": "ng serve --configuration qa",
     "build": "ng build",
     "serve": "ng serve",
-    "test:booking": "node scripts/test-booking.mjs"
+    "test:booking": "node scripts/test-booking.mjs",
+    "test:approval": "node scripts/test-approval.mjs",
+    "test:appointments": "node scripts/test-appointments.mjs",
+    "test:clinical": "node scripts/test-clinical.mjs",
+    "test:agenda-account": "node scripts/test-agenda-account.mjs",
+    "test:doctor-editors": "node scripts/test-doctor-editors.mjs"
   },
   "private": true,
   "dependencies": {

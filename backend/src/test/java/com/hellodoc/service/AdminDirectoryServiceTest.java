@@ -33,7 +33,7 @@ class AdminDirectoryServiceTest {
  }
  @Test void deletingDoctorRemovesItsDependentProfilesAndPrivateDocument(){
   DoctorRepository doctors=mock(DoctorRepository.class);PatientRepository patients=mock(PatientRepository.class);AdminAccountDeletionRepository deletion=mock(AdminAccountDeletionRepository.class);DoctorDocumentStorageService documents=mock(DoctorDocumentStorageService.class);
-  AdminDirectoryService service=new AdminDirectoryService(doctors,patients,deletion,documents);UUID doctorId=UUID.randomUUID(),applicationId=UUID.randomUUID(),userId=UUID.randomUUID();Doctor doctor=mock(Doctor.class);DoctorApplication application=mock(DoctorApplication.class);UserAccount user=mock(UserAccount.class);
+  AdminDirectoryService service=new AdminDirectoryService(doctors,patients,deletion,documents,mock(com.hellodoc.repository.AppointmentRepository.class),mock(AdministrativeAuditService.class));UUID doctorId=UUID.randomUUID(),applicationId=UUID.randomUUID(),userId=UUID.randomUUID();Doctor doctor=mock(Doctor.class);DoctorApplication application=mock(DoctorApplication.class);UserAccount user=mock(UserAccount.class);
   when(doctors.findById(doctorId)).thenReturn(Optional.of(doctor));when(doctor.getId()).thenReturn(doctorId);when(doctor.getApplication()).thenReturn(application);when(doctor.getUser()).thenReturn(user);when(application.getId()).thenReturn(applicationId);when(application.getDocumentStorageKey()).thenReturn("private-key.pdf");when(user.getId()).thenReturn(userId);
   org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
   try{service.deleteDoctor(doctorId);org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations().forEach(org.springframework.transaction.support.TransactionSynchronization::afterCommit);}
@@ -41,10 +41,10 @@ class AdminDirectoryServiceTest {
   org.mockito.InOrder order=inOrder(deletion);order.verify(deletion).deleteAbsences(doctorId);order.verify(deletion).deleteAvailabilities(doctorId);order.verify(deletion).deleteDoctorSpecialties(doctorId);order.verify(deletion).deleteDoctor(doctorId);order.verify(deletion).deleteDoctorApplication(applicationId);order.verify(deletion).deleteUser(userId);verify(documents).delete("private-key.pdf");
  }
  @Test void deletingPatientRemovesPatientProfileAndUser(){
-  DoctorRepository doctors=mock(DoctorRepository.class);PatientRepository patients=mock(PatientRepository.class);AdminAccountDeletionRepository deletion=mock(AdminAccountDeletionRepository.class);AdminDirectoryService service=new AdminDirectoryService(doctors,patients,deletion,mock(DoctorDocumentStorageService.class));
+  DoctorRepository doctors=mock(DoctorRepository.class);PatientRepository patients=mock(PatientRepository.class);AdminAccountDeletionRepository deletion=mock(AdminAccountDeletionRepository.class);AdminDirectoryService service=new AdminDirectoryService(doctors,patients,deletion,mock(DoctorDocumentStorageService.class),mock(com.hellodoc.repository.AppointmentRepository.class),mock(AdministrativeAuditService.class));
   UUID patientId=UUID.randomUUID();Patient patient=mock(Patient.class);UserAccount user=mock(UserAccount.class);when(patients.findById(patientId)).thenReturn(Optional.of(patient));when(patient.getUser()).thenReturn(user);when(user.getRole()).thenReturn(UserRole.USER);
   when(patient.getId()).thenReturn(patientId);when(user.getId()).thenReturn(UUID.randomUUID());service.deletePatient(patientId);org.mockito.InOrder order=inOrder(deletion);order.verify(deletion).deletePatient(patientId);order.verify(deletion).deleteUser(user.getId());
  }
- private AdminDirectoryService service(DoctorRepository doctors,PatientRepository patients){return new AdminDirectoryService(doctors,patients,mock(AdminAccountDeletionRepository.class),mock(DoctorDocumentStorageService.class));}
+ private AdminDirectoryService service(DoctorRepository doctors,PatientRepository patients){return new AdminDirectoryService(doctors,patients,mock(AdminAccountDeletionRepository.class),mock(DoctorDocumentStorageService.class),mock(com.hellodoc.repository.AppointmentRepository.class),mock(AdministrativeAuditService.class));}
 }
 

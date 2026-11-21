@@ -1,3 +1,5 @@
+import { AvatarComponent } from '../../shared/avatar.component';
+import { WorkspaceFooterComponent } from '../../shared/workspace-footer.component';
 import { Component, DestroyRef, HostListener, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -10,11 +12,11 @@ import { AuthService } from '../../core/services/auth.service';
 import { IconComponent } from '../../shared/icon.component';
 import { MedicalService, TimeSlot } from '../../core/models/api.models';
 
-interface Doctor { fullName: string; serviceTitle: string; specialty: string; location: string; services: MedicalService[]; }
+interface Doctor { photoUrl?:string|null; fullName: string; serviceTitle: string; specialty: string; location: string; services: MedicalService[]; }
 interface CalendarDay { date: string; status: string; availableSlots: number; }
 interface BookingPolicy { timeZone: string; minDate: string; maxDate: string; minimumNoticeMinutes: number; }
 @Component({selector:'app-booking',standalone:true,
-  imports:[CommonModule,ReactiveFormsModule,RouterLink,IconComponent],
+  imports:[AvatarComponent,WorkspaceFooterComponent,CommonModule,ReactiveFormsModule,RouterLink,IconComponent],
   templateUrl:'./booking.component.html'})
 export class BookingComponent implements OnInit {
   private route=inject(ActivatedRoute); private api=inject(ApiService);

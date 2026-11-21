@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,12 +21,16 @@ public class DoctorApprovalEmailSender {
             @Value("${hellodoc.frontend-url:http://localhost:4200}") String frontendUrl,
             @Value("${spring.mail.host:}") String smtpHost) {
         this.mailSender=mailSender;this.from=from;this.frontendUrl=frontendUrl;this.smtpHost=smtpHost;
+        // Google displays app passwords in groups; pasted separator spaces are not part of the credential.
+        if("smtp.gmail.com".equalsIgnoreCase(smtpHost)&&mailSender instanceof JavaMailSenderImpl configured&&configured.getPassword()!=null){
+            String normalized=configured.getPassword().replaceAll("[\\s\\u00a0]+","");
+            if(normalized.matches("[A-Za-z]{16}"))configured.setPassword(normalized);
+        }
     }
 
     public void send(DoctorApplicationApprovedEvent event) {
         if(smtpHost==null||smtpHost.isBlank()) {
-            LOG.log(System.Logger.Level.ERROR,"Courriel d’approbation non envoyé : HELLODOC_SMTP_HOST n’est pas configuré.");
-            return;
+            throw new IllegalStateException("HELLODOC_SMTP_HOST n’est pas configuré.");
         }
         String greeting=(event.firstName()==null||event.firstName().isBlank())?"Docteur":"Docteur "+event.firstName().trim();
         String safeUrl=frontendUrl.endsWith("/")?frontendUrl.substring(0,frontendUrl.length()-1):frontendUrl;

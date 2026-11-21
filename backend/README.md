@@ -35,6 +35,118 @@ Set `SERVER_PORT` only if you need to override the shared backend default of `80
 
 Hibernate creates/updates the `users` table. Database credentials and the initial password are intentionally required from environment variables and are not committed.
 
+## Configuration IntelliJ pour chaque membre de l’équipe
+
+Après un clone ou un pull, chaque personne conserve ses propres réglages MySQL et SMTP. Les paramètres communs du code restent dans `src/main/resources/application.properties` ; les valeurs personnelles sont définies dans une configuration de lancement IntelliJ locale. Un pull partage le code, pas les comptes ni les données MySQL d’un autre PC.
+
+### 1. Préparer le backend
+
+1. Démarrer le service MySQL local (Laragon, XAMPP ou votre installation MySQL).
+2. Vérifier son port et créer la base voulue si elle n’existe pas. Exemple pour une base appelée `hello_doc` :
+
+   ```sql
+   CREATE DATABASE IF NOT EXISTS hello_doc CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
+
+   Si votre base porte un autre nom, utilisez ce nom dans la commande et dans l’URL JDBC. Hibernate crée/met à jour les tables après connexion ; le lancement direct depuis IntelliJ ne crée pas la base MySQL elle-même.
+3. Ouvrir `backend/pom.xml` dans IntelliJ comme projet Maven, puis laisser les dépendances se charger. Utiliser le JDK **21**.
+
+### 2. Créer sa configuration de lancement
+
+Dans **Run → Edit Configurations… → + → Spring Boot**, renseigner :
+
+| Champ | Valeur |
+|---|---|
+| Name | `HelloDoc Backend` |
+| Main class | `com.hellodoc.HelloDocApplication` |
+| JRE / JDK | Java 21 |
+| Use classpath of module | Le module Maven du backend |
+| Working directory | Votre dossier `backend` local |
+| Active profiles | Laisser vide ; aucun profil `smtp` n’est défini |
+| Store as project file | Laisser décoché pour conserver les identifiants localement |
+
+Afficher **Environment variables** depuis **Modify options** si nécessaire, puis ouvrir son éditeur de variables. Voir [la documentation IntelliJ](https://www.jetbrains.com/help/idea/run-debug-configuration-spring-boot.html).
+
+### 3. Renseigner ses propres variables MySQL
+
+| Variable | Valeur à renseigner sur votre PC |
+|---|---|
+| `HELLODOC_DB_URL` | `jdbc:mysql://127.0.0.1:PORT_MYSQL/NOM_BASE?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC` |
+| `HELLODOC_DB_USERNAME` | Votre utilisateur MySQL, par exemple `root` |
+| `HELLODOC_DB_PASSWORD` | Votre mot de passe MySQL ; vide si le compte n’en a pas |
+| `SERVER_PORT` | `8081` recommandé pour le backend |
+| `HELLODOC_ADMIN_INITIAL_PASSWORD` | Un mot de passe personnel d’au moins 12 caractères pour créer l’administrateur initial |
+
+Remplacer `PORT_MYSQL` et `NOM_BASE` par de vraies valeurs. Exemple : MySQL sur **3306** et base **hello_doc** donnent :
+
+```text
+jdbc:mysql://127.0.0.1:3306/hello_doc?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+```
+
+Pour MySQL sur **3308**, remplacer seulement `3306` par `3308`. `SERVER_PORT` est le port HTTP du backend, distinct du port MySQL : chaque PC peut utiliser son propre port MySQL tout en gardant le backend sur **8081**.
+
+L’administrateur initial est `admin@hellodoc.com`. Si ce compte existe déjà dans votre base, changer `HELLODOC_ADMIN_INITIAL_PASSWORD` ne change pas son mot de passe enregistré.
+
+### 4. Renseigner son SMTP
+
+Pour envoyer les e-mails avec Gmail, ajouter :
+
+| Variable | Valeur |
+|---|---|
+| `HELLODOC_EMAIL_ENABLED` | `true` |
+| `HELLODOC_SMTP_HOST` | `smtp.gmail.com` |
+| `HELLODOC_SMTP_PORT` | `587` |
+| `HELLODOC_SMTP_USERNAME` | Votre adresse Gmail complète |
+| `HELLODOC_SMTP_PASSWORD` | Votre mot de passe d’application Google |
+| `HELLODOC_EMAIL_FROM` | La même adresse Gmail |
+
+Le backend active STARTTLS par défaut. Utiliser un mot de passe d’application créé avec la validation en deux étapes, selon [l’aide Google](https://support.google.com/accounts/answer/185833). Pour travailler sans envoi d’e-mails, définir uniquement `HELLODOC_EMAIL_ENABLED=false` pour cette partie.
+
+### 5. Démarrer et conserver les réglages
+
+Cliquer sur **Apply → OK → Run**, puis attendre `Started HelloDocApplication`. Ces variables seront réutilisées lors des prochains lancements avec cette configuration IntelliJ ; elles ne sont pas appliquées au script lancé séparément dans un terminal. Les questions MySQL du script `run-local.ps1` restent inchangées.
+
+Sur Windows, pour utiliser le même réglage JVM que le script local, ajouter dans **Modify options → Add VM options** :
+
+```text
+-Djdk.net.unixdomain.tmpdir="VOTRE_CHEMIN_LOCAL/HELLO-DOC/backend/target"
+```
+
+Remplacer le chemin par celui de votre propre clone et vérifier que le dossier `backend/target` existe (la compilation Maven le crée). Ne pas recopier le chemin personnel d’un camarade.
+
+Dans un autre terminal, depuis `frontend`, lancer `npm ci` au premier lancement ou après une modification des dépendances, puis `npm start`. Ouvrir `http://localhost:4200`.
+
+Si vous devez changer le port HTTP du backend, par exemple `SERVER_PORT=8082`, adapter aussi `apiBaseUrl` dans `frontend/src/environments/environment.ts` vers `http://localhost:8082/api`. Pour le mobile, l’adresse se règle avec `HELLODOC_API_URL` à la compilation (voir son guide). Garder **8081** sur tous les PC évite ces modifications du frontend. Si Angular change de port, adapter également `HELLODOC_FRONTEND_ORIGIN` et `HELLODOC_FRONTEND_URL` dans les variables du backend.
+
+Les dossiers `.idea/`, `.run/`, les fichiers `.env.local`, `local.properties` Android et les dossiers de compilation sont ignorés par Git. Les configurations contenant des mots de passe restent personnelles ; ne pas les exporter dans un autre fichier suivi par Git.
+
+## Courriel d’approbation médecin : état et relance
+
+L’approbation crée le profil et active le compte dans une transaction. Après validation de cette transaction, un traitement séparé envoie le courriel : une panne SMTP ne transforme pas l’approbation réussie en échec et ne désactive pas le médecin. Les doubles clics sont bloqués dans l’interface ; un nouvel appel d’approbation pour une candidature déjà approuvée renvoie son état sans recréer le profil ni renvoyer le courriel.
+
+L’état d’envoi est enregistré pour chaque candidature : `NOT_SENT`, `QUEUED`, `SENT`, `FAILED` ou `DISABLED`. `SENT` signifie que le serveur SMTP a accepté le courriel, sans garantir son classement dans la boîte de réception. Après l’approbation, l’administration affiche cet état séparément du résultat de la décision.
+
+Pour un médecin déjà approuvé qui n’a pas reçu de courriel : **Administration → Médecins → Consulter → Courriel d’approbation → Envoyer le courriel**. Il n’est pas nécessaire de recréer le compte ni de refaire la décision. Un envoi déjà marqué `SENT` n’est pas répété par ce bouton ; vérifier les courriers indésirables si nécessaire. Un traitement interrompu peut être relancé après la vérification de son état.
+
+Les API suivantes sont réservées à l’administrateur, avec CSRF pour la relance :
+
+- `GET /api/admin/doctors/{applicationId}/approval-email` : état, explication et dates de tentative/envoi.
+- `POST /api/admin/doctors/{applicationId}/approval-email` : mise en attente d’un envoi pour un compte approuvé et actif.
+
+Le serveur distingue les erreurs d’authentification SMTP, de connexion et de configuration, sans exposer les identifiants. Pour Gmail, les espaces de présentation d’un mot de passe d’application de 16 lettres sont retirés automatiquement ; les mots de passe des autres fournisseurs ne sont pas modifiés. Les connexions SMTP ont des délais bornés : 5 secondes pour la connexion et 10 secondes pour la lecture/l’écriture, configurables avec `HELLODOC_SMTP_CONNECTION_TIMEOUT_MS`, `HELLODOC_SMTP_READ_TIMEOUT_MS` et `HELLODOC_SMTP_WRITE_TIMEOUT_MS`.
+
+Après une mise à jour de ce correctif, redémarrer le backend depuis IntelliJ. Hibernate ajoute les colonnes de suivi d’envoi aux candidatures existantes ; leur statut d’approbation et leur compte restent inchangés. Les anciens comptes approuvés commencent avec un état d’envoi `NOT_SENT`, faute d’historique antérieur.
+
+Vérifications : `mvn test`, `npm run test:approval` et `npm run test:booking` dans leurs dossiers respectifs. Pour tester une panne SMTP puis une relance avec de vrais appels HTTP et MySQL, sans courriel externe et sans toucher au serveur habituel :
+
+```powershell
+# Depuis backend/, avec MySQL local sur 3308 et le jar compilé.
+$env:HELLODOC_QA_PORT='8083'
+python verify-workflows.py --mail
+```
+
+Ce scénario utilise un serveur SMTP local factice et une base `hello_doc_qa_*` créée puis supprimée automatiquement. Le test `DoctorApprovalSmtpConnectionTest` est désactivé par défaut ; son activation explicite vérifie uniquement l’authentification au SMTP configuré, sans envoyer de message.
+
 ## Profile and scheduling API
 
 - `GET/PUT /api/patients/me` reads or updates the signed-in patient profile; updates require the current password.
@@ -54,6 +166,8 @@ Hibernate creates/updates the `users` table. Database credentials and the initia
 - `GET /api/appointments/mine?history=false|true`, `GET /api/appointments/{id}`, `POST /api/appointments/{id}/cancellation`, `PATCH /api/appointments/{id}/status`, and `PUT /api/appointments/{id}/reschedule` support patient and doctor workflows with participant ownership checks.
 - `GET /api/doctors/me/appointments` returns only the active doctor’s agenda. Rebooking and rescheduling revalidate the doctor’s weekly schedule, absences, duration, current time, and overlapping active appointments inside a transaction. A doctor row lock serializes competing requests and a unique reservation key prevents duplicate start times at the database level.
 - Statuses are `PENDING`, `CONFIRMED`, `TO_RESCHEDULE`, `COMPLETED`, `REJECTED`, `CANCELLED`, and `NO_SHOW`; every transition is stored in `appointment_status_history`.
+- Une demande `PENDING` propose au médecin uniquement **Confirmer** et **Refuser**. Le médecin peut **Annuler** un rendez-vous `CONFIRMED` à venir ; il ne peut pas utiliser l’annulation à la place du refus d’une demande en attente.
+- La **reprogrammation est réservée au patient propriétaire** du rendez-vous : `GET /api/appointments/{id}/reschedule-options` et `PUT /api/appointments/{id}/reschedule` acceptent uniquement les rôles `USER`/`PATIENT`. Le médecin ne dispose plus de lien ni de route de reprogrammation ; les appels directs avec son compte renvoient HTTP 403. Après une absence, il attend le nouveau créneau choisi par le patient ; la demande issue de `TO_RESCHEDULE` revient à `PENDING` pour confirmation.
 - `GET /api/notifications` lists only the signed-in patient’s or active doctor’s notifications; `PATCH /api/notifications/{id}/read` marks only that recipient’s notification as read. Appointment requests, decisions, cancellations, rescheduling, and new reviews create persisted notifications in the same transaction.
 - `POST /api/appointments/{id}/review` creates or edits the signed-in patient’s single review after a completed consultation. `GET /api/doctors/me/reviews` lists reviews only for the active doctor’s own profile.
 

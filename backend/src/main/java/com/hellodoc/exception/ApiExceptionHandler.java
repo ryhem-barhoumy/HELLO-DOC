@@ -3,6 +3,7 @@ import com.hellodoc.dto.ApiError; import org.slf4j.Logger; import org.slf4j.Logg
 @RestControllerAdvice
 public class ApiExceptionHandler {
  private static final Logger log=LoggerFactory.getLogger(ApiExceptionHandler.class);
+ @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class) ResponseEntity<ApiError> forbidden(org.springframework.security.access.AccessDeniedException e){return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiError.of(403,"FORBIDDEN","Vous n’êtes pas autorisé à effectuer cette action.",Map.of()));}
  @ExceptionHandler(MethodArgumentNotValidException.class) ResponseEntity<ApiError> validation(MethodArgumentNotValidException e){Map<String,String> fields=new LinkedHashMap<>();e.getBindingResult().getFieldErrors().forEach(x->fields.putIfAbsent(x.getField(),x.getDefaultMessage()));return ResponseEntity.badRequest().body(ApiError.of(400,"VALIDATION_ERROR","Certaines données sont invalides.",fields));}
  @ExceptionHandler(ResponseStatusException.class) ResponseEntity<ApiError> status(ResponseStatusException e){int s=e.getStatusCode().value();String message=e.getReason()==null?"La requête n’a pas pu être traitée.":e.getReason();return ResponseEntity.status(s).body(ApiError.of(s,s==404?"NOT_FOUND":s==409?"CONFLICT":s==403?"FORBIDDEN":"REQUEST_ERROR",message,Map.of()));}
  @ExceptionHandler(IllegalArgumentException.class) ResponseEntity<ApiError> invalid(IllegalArgumentException e){return ResponseEntity.badRequest().body(ApiError.of(400,"VALIDATION_ERROR",e.getMessage(),Map.of()));}

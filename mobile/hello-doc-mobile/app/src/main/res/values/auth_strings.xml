@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_local_network_reason">Cette version de test se connecte au serveur HelloDoc de votre PC. Android demande votre autorisation pour y accéder sur le réseau local.</string>
+    <string name="auth_allow_local_network">Autoriser le serveur local</string>
+    <string name="auth_se_deconnecter">Se déconnecter</string>
+    <string name="auth_adresse_e_mail">Adresse e-mail</string>
+    <string name="auth_mot_de_passe">Mot de passe</string>
+    <string name="auth_patient">Patient</string>
+    <string name="auth_medecin">Médecin</string>
+    <string name="auth_prenom">Prénom</string>
+    <string name="auth_nom">Nom</string>
+    <string name="auth_telephone_8_a_15_chiffres">Téléphone — 8 à 15 chiffres</string>
+    <string name="auth_adresse">Adresse</string>
+    <string name="auth_mot_de_passe_8_a_72_caracteres">Mot de passe — 8 à 72 caractères</string>
+    <string name="auth_confirmer_le_mot_de_passe">Confirmer le mot de passe</string>
+    <string name="auth_specialite">Spécialité</string>
+    <string name="auth_reessayer_les_specialites">Réessayer les spécialités</string>
+    <string name="auth_numero_dinscription_a_lordre">Numéro d’inscription à l’Ordre</string>
+    <string name="auth_ville">Ville</string>
+    <string name="auth_joindre_mon_attestation_a_lordre">Joindre mon attestation à l’Ordre</string>
+    <string name="auth_aucun_justificatif_selectionne">Aucun justificatif sélectionné</string>
+    <string name="auth_un_fichier_pdf_jpeg_ou_png_de_5_mo_maximum">Un fichier PDF, JPEG ou PNG de 5 Mo maximum.</string>
+    <string name="auth_creer_mon_compte">Créer mon compte</string>
+    <string name="auth_deja_inscrit_se_connecter">Déjà inscrit ? Se connecter</string>
+</resources>

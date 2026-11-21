@@ -1,0 +1,200 @@
+/* Doctor account and weekly editors. Scoped to keep patient/admin screens unchanged. */
+.doctor-workspace{--editor-brand:#087f71;--editor-ink:#173b36;--editor-muted:#5e706e;--editor-line:#dfe8e4;--editor-soft:#e6f5ef;background:#f7faf9}
+.doctor-workspace .content-area{max-width:1440px;padding:36px 40px 56px}
+.doctor-workspace .page-heading{margin-bottom:28px;gap:20px}
+.doctor-workspace .page-heading h1{font:700 clamp(28px,2.6vw,36px)/1.2 'Segoe UI',sans-serif;letter-spacing:-.045em;color:var(--editor-ink);margin:9px 0 10px}
+.doctor-workspace .page-heading p{color:var(--editor-muted);max-width:780px;font-size:15px;line-height:1.65}
+.doctor-workspace .sidebar .workspace-label{font-size:11px}
+.doctor-workspace .side-nav a{font-size:14px;min-height:46px}
+.doctor-workspace .mini-profile small,.doctor-workspace .help-card small{font-size:12px}
+.doctor-workspace .mobile-menu{width:44px;min-width:44px;height:44px;padding:8px;border:1px solid #d6e5dc;border-radius:9px;background:#fff;color:var(--editor-brand);font-size:23px;line-height:1;cursor:pointer}
+.doctor-workspace .mobile-menu:focus-visible{outline:3px solid var(--editor-brand);outline-offset:3px}
+.doctor-ui{font:400 15px/1.55 'Segoe UI',Arial,sans-serif;color:var(--editor-ink);min-width:0}
+.doctor-ui *{box-sizing:border-box}
+.doctor-ui [hidden]{display:none!important}
+.doctor-ui h2,.doctor-ui h3,.doctor-ui p{margin:0}
+.doctor-ui h2{font:650 20px/1.3 'Segoe UI',sans-serif;letter-spacing:-.025em}
+.doctor-ui h3{font-size:16px;font-weight:650;line-height:1.45}
+.doctor-ui input,.doctor-ui textarea,.doctor-ui select,.doctor-ui button{font-family:inherit}
+.doctor-ui input:not([type=checkbox]),.doctor-ui select,.doctor-ui textarea{width:100%;min-width:0;min-height:48px;font-size:15px;border:1px solid #becfc7;border-radius:9px;color:var(--editor-ink);padding:11px 13px;background:#fff;line-height:1.45;transition:border-color .15s,box-shadow .15s}
+.doctor-ui textarea{resize:vertical;min-height:112px}
+.doctor-ui input:focus,.doctor-ui textarea:focus,.doctor-ui select:focus{outline:0;border-color:var(--editor-brand);box-shadow:0 0 0 3px #087f711b}
+.doctor-ui input:disabled,.doctor-ui select:disabled,.doctor-ui textarea:disabled{background:#f1f5f3;cursor:wait}
+.doctor-ui input[aria-invalid=true]{border-color:#b23e48;background:#fffafa}
+.doctor-ui input[type=checkbox]{width:19px;height:19px;min-width:19px;min-height:19px;padding:0;accent-color:var(--editor-brand);cursor:pointer}
+.doctor-ui button,.doctor-ui a{touch-action:manipulation}
+.doctor-ui button:focus-visible,.doctor-ui a:focus-visible,.doctor-ui input[type=checkbox]:focus-visible{outline:3px solid #087f71;outline-offset:3px}
+.doctor-ui button:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+.doctor-ui .editor-button{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:11px 17px;border:1px solid transparent;border-radius:9px;font-size:14px;line-height:1.4;font-weight:650;white-space:normal;text-align:center;transition:background .15s,border-color .15s,box-shadow .15s;cursor:pointer}
+.doctor-ui .editor-button.primary{background:var(--editor-brand);color:white;box-shadow:0 2px 3px #087f7112}
+.doctor-ui .editor-button.primary:hover:not(:disabled){background:#06685d;box-shadow:0 3px 10px #087f7122}
+.doctor-ui .editor-button.secondary{border-color:#cbdcd3;background:white;color:var(--editor-ink)}
+.doctor-ui .editor-button.secondary:hover:not(:disabled){background:#f0f8f4;border-color:#86b8a5}
+.doctor-ui .editor-button.subtle{color:var(--editor-brand);background:#f1f8f5;border-color:#e0ece6;padding:9px 12px}
+.doctor-ui .editor-button.destructive{background:#a33340;color:white}
+.doctor-ui .editor-button.destructive:hover{background:#852332}
+.doctor-ui .editor-icon-button{width:42px;height:42px;min-height:42px;display:inline-flex;align-items:center;justify-content:center;flex:none;padding:8px;border:1px solid #dbe6e0;border-radius:8px;background:white;color:#4d6f63;font-size:24px;cursor:pointer}
+.doctor-ui .editor-icon-button:hover{background:#eef6f1;border-color:#a7c6b7}
+.doctor-ui .editor-icon-button.danger{color:#a83b46}
+.doctor-ui .editor-icon-button.danger:hover{background:#fff0f1;border-color:#e6bdc0}
+.doctor-ui app-icon{width:19px;height:19px}
+.doctor-ui .editor-inline{display:inline-flex;align-items:center;gap:6px;padding:7px 0;min-height:40px;color:var(--editor-brand);font-weight:650;font-size:14px;background:none;border:0;cursor:pointer;text-decoration:none;line-height:1.5}
+.doctor-ui .editor-inline:hover{text-decoration:underline;text-underline-offset:4px}
+.doctor-ui .editor-kicker{font-size:11px;font-weight:700;letter-spacing:.1em;line-height:1.5;color:#507969}
+.doctor-ui .editor-badge{display:inline-flex;align-items:center;gap:6px;color:#086959;background:#e6f5ee;border:1px solid #d1e9dc;border-radius:30px;padding:5px 10px;font-size:12px;font-weight:600;line-height:1.5}
+.doctor-ui .editor-card{background:#fff;border:1px solid var(--editor-line);border-radius:16px;box-shadow:0 3px 16px #173b3603;padding:28px;min-width:0}
+.doctor-ui .editor-card-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:26px}
+.doctor-ui .editor-card-header p{font-size:14px;color:var(--editor-muted);line-height:1.65;margin-top:6px}
+.doctor-ui .editor-card-header.with-action{align-items:center;justify-content:space-between;gap:20px}
+.doctor-ui .editor-card-header.with-action .editor-button{flex:none}
+.doctor-ui .editor-section-icon{width:42px;height:42px;display:inline-flex;align-items:center;justify-content:center;flex:none;background:#eff7f3;color:var(--editor-brand);border:1px solid #e0ece5;border-radius:11px}
+.doctor-ui .editor-stack{display:grid;gap:24px}
+.doctor-ui .editor-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 24px}
+.doctor-ui .editor-field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.doctor-ui .editor-field.full{grid-column:1/-1}
+.doctor-ui .editor-field>label{font-size:14px;line-height:1.45;font-weight:600;color:#294d43}
+.doctor-ui .editor-field>label>span:not(.editor-optional){color:#578174}
+.doctor-ui .editor-field small{font-size:12px;line-height:1.5;color:var(--editor-muted)}
+.doctor-ui .editor-field small:empty{display:none}
+.doctor-ui .editor-field .editor-field-error,.doctor-ui .editor-field-error{color:#a12f3c;font-size:13px;line-height:1.5}
+.doctor-ui .editor-optional{font-size:12px;font-weight:400;color:var(--editor-muted);margin-left:6px}
+.doctor-ui .editor-field .editor-readonly{background:#f4f7f5;color:#5d736a;border-color:#dce6e0}
+.doctor-ui .editor-form{display:grid;gap:24px}
+.doctor-ui .editor-note{font-size:13px;color:var(--editor-muted);line-height:1.65;margin:14px 0 0}
+.doctor-ui .editor-state{display:flex;align-items:center;justify-content:center;gap:12px;padding:64px 24px;background:white;border:1px solid var(--editor-line);border-radius:16px}
+.doctor-ui .editor-message{border:1px solid;border-radius:10px;padding:15px 18px;font-size:14px;line-height:1.65;margin:0 0 22px}
+.doctor-ui .editor-message p{margin-top:5px}
+.doctor-ui .editor-message.is-error{background:#fff5f5;border-color:#edc9ce;color:#96303a}
+.doctor-ui .editor-message.is-success{display:flex;gap:10px;align-items:center;background:#edf8f1;border-color:#c9e8d5;color:#086449}
+.doctor-ui .editor-message.is-warning{background:#fff9ed;border-color:#ecdcb5;color:#72521f}
+.doctor-ui .editor-message .editor-button{margin-top:12px}
+.doctor-ui .editor-spinner{width:18px;height:18px;display:inline-block;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:editor-spin .7s linear infinite;flex:none}
+@keyframes editor-spin{to{transform:rotate(360deg)}}
+.doctor-ui .account-identity{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:26px 28px;background:linear-gradient(120deg,#fff,#f5faf7);margin-bottom:26px}
+.doctor-ui .account-identity-person{display:flex;align-items:center;gap:22px;min-width:0}
+.doctor-ui .account-identity-person>div{min-width:0}
+.doctor-ui .account-identity h2{font-size:25px;letter-spacing:-.04em;margin:6px 0}
+.doctor-ui .account-identity p{font-size:14px;color:var(--editor-muted);margin-bottom:11px;overflow-wrap:anywhere}
+.doctor-ui .account-identity>.editor-button{flex:none}
+.doctor-ui .person-avatar{border-radius:22px;box-shadow:0 0 0 4px white,0 0 0 5px #dce9e0}
+.doctor-ui #doctor-photo-editor .profile-photo-card{box-shadow:none;margin:0 0 24px;border-radius:16px;padding:24px;background:white;border:1px solid var(--editor-line)}
+.doctor-ui #doctor-photo-editor .photo-copy h2{font-size:20px}
+.doctor-ui #doctor-photo-editor .photo-copy p{font-size:14px;line-height:1.7}
+.doctor-ui #doctor-photo-editor .photo-copy small{font-size:12px}
+.doctor-ui #doctor-photo-editor .photo-copy .button{min-height:44px;font-size:14px}
+.doctor-ui .editor-tabs{display:flex;align-items:stretch;gap:6px;max-width:100%;border-bottom:1px solid #d7e4dd;margin:0 0 28px;padding:0 0 0 2px}
+.doctor-ui .editor-tabs button{position:relative;display:flex;align-items:center;justify-content:center;gap:9px;padding:15px 20px 17px;font-size:15px;font-weight:600;color:#5c7369;min-height:52px;background:transparent;border:0;cursor:pointer}
+.doctor-ui .editor-tabs button.selected{color:var(--editor-brand)}
+.doctor-ui .editor-tabs button.selected:after{content:'';position:absolute;bottom:-1px;left:10px;right:10px;height:3px;background:var(--editor-brand);border-radius:3px 3px 0 0}
+.doctor-ui .editor-tabs button:hover{background:#eaf4ef;border-radius:9px 9px 0 0}
+.doctor-ui .editor-tabs app-icon{width:19px;height:19px}
+.doctor-ui .editor-save-bar{display:flex;align-items:center;justify-content:space-between;gap:32px;background:#fff;border:1px solid var(--editor-line);border-radius:14px;padding:24px 28px;margin:0;box-shadow:0 3px 16px #173b3604}
+.doctor-ui .editor-save-bar>.editor-field{flex:1;max-width:440px}
+.doctor-ui .editor-save-action{display:flex;flex-direction:column;align-items:flex-end;gap:9px}
+.doctor-ui .editor-save-action>small{font-size:12px;color:var(--editor-muted)}
+.doctor-ui .editor-password{display:flex;position:relative;min-width:0}
+.doctor-ui app-password-field{display:block;min-width:0}
+.doctor-ui .editor-password input{padding-right:53px!important}
+.doctor-ui .editor-password button{display:grid;place-items:center;position:absolute;top:3px;right:3px;height:42px;width:42px;border:0;background:transparent;border-radius:7px;color:#5b786d;cursor:pointer;padding:10px}
+.doctor-ui .editor-password button:hover{background:#edf5f0}
+.doctor-ui .editor-password svg{height:20px;width:20px}
+.doctor-ui .security-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,.72fr);gap:44px}
+.doctor-ui .security-layout .editor-button{justify-self:start;min-width:230px}
+.doctor-ui .security-advice{padding:24px;background:#f3f8f5;border:1px solid #e1ebe4;border-radius:12px;align-self:start}
+.doctor-ui .security-advice h3{margin:16px 0 12px;font-size:17px}
+.doctor-ui .security-advice p,.doctor-ui .security-advice li{font-size:14px;color:#526d62;line-height:1.8}
+.doctor-ui .security-advice ul{padding-left:18px;margin:16px 0 0;display:grid;gap:12px}
+.doctor-ui .service-list-head,.doctor-ui .service-item{display:grid;grid-template-columns:minmax(0,1fr) 100px 130px 94px;align-items:center;gap:18px}
+.doctor-ui .service-list-head{font-size:12px;font-weight:600;color:#536d61;background:#f6f9f7;border-radius:9px;padding:13px 16px}
+.doctor-ui .service-item{padding:20px 16px;border-bottom:1px solid #e7eeea;font-size:14px}
+.doctor-ui .service-name{display:flex;align-items:center;gap:12px;min-width:0;overflow-wrap:anywhere}
+.doctor-ui .service-name strong{font-weight:600;font-size:14px}
+.doctor-ui .service-name .editor-section-icon{width:36px;height:36px;border-radius:9px}
+.doctor-ui .service-duration{font-size:13px;color:#536d61}
+.doctor-ui .service-price{font-size:17px;font-weight:650;overflow-wrap:anywhere}
+.doctor-ui .service-price small{font-size:12px;color:#607b6e;font-weight:500}
+.doctor-ui .service-actions{display:flex;gap:8px}
+.doctor-ui .service-actions .editor-icon-button{width:40px;height:40px;min-height:40px}
+.doctor-ui .editor-empty{padding:32px 20px;text-align:center;border:1px dashed #c9ddd0;border-radius:12px;background:#fbfdfb}
+.doctor-ui .editor-empty>app-icon{width:30px;height:30px;color:var(--editor-brand);margin-bottom:12px}
+.doctor-ui .editor-empty p{font-size:14px;color:var(--editor-muted);margin-top:8px}
+.doctor-ui .editor-callout{display:flex;align-items:center;gap:14px;padding:18px;background:#f0f7f3;border:1px solid #dcebe1;border-radius:10px;margin-top:24px}
+.doctor-ui .editor-callout>app-icon{flex:none;color:var(--editor-brand)}
+.doctor-ui .editor-callout>div{flex:1}
+.doctor-ui .editor-callout strong{font-size:14px;font-weight:650}
+.doctor-ui .editor-callout p{font-size:13px;line-height:1.7;color:#587564;margin-top:4px}
+.doctor-ui .editor-callout>a{flex:none}
+.doctor-ui .editor-dialog{background:#fff;color:var(--editor-ink);border:1px solid #d9e6df;border-radius:16px;padding:0;box-shadow:0 24px 100px #0a28264d;width:min(560px,calc(100% - 32px));max-width:calc(100% - 32px);max-height:calc(100dvh - 48px);overflow-y:auto}
+.doctor-ui .editor-dialog::backdrop{background:#123b3680;backdrop-filter:blur(3px)}
+.doctor-ui .editor-dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 28px;border-bottom:1px solid #e0eae4}
+.doctor-ui .editor-dialog-heading h2{font-size:21px;margin-top:5px}
+.doctor-ui .dialog-form{padding:26px 28px}
+.doctor-ui .editor-dialog-actions{display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin-top:24px}
+.doctor-ui .dialog-form.editor-form .editor-dialog-actions{margin-top:0}
+.doctor-ui .editor-fieldset{border:0;padding:0;margin:0;min-width:0;display:grid;gap:26px}
+.doctor-ui .editor-fieldset:disabled{opacity:.72}
+.doctor-ui .week-summary{display:grid;grid-template-columns:1fr 1fr 1.1fr;gap:16px;margin-bottom:28px}
+.doctor-ui .week-summary>div{display:flex;align-items:center;gap:17px;background:white;border:1px solid var(--editor-line);border-radius:13px;padding:20px 22px}
+.doctor-ui .week-summary p{display:grid;gap:4px}
+.doctor-ui .week-summary strong{font-size:24px;line-height:1.3;letter-spacing:-.03em;font-weight:650}
+.doctor-ui .week-summary strong>span{font-size:14px;color:var(--editor-muted);font-weight:400;letter-spacing:0}
+.doctor-ui .week-summary small{font-size:12px;color:var(--editor-muted);line-height:1.5}
+.doctor-ui .week-summary .summary-zone{display:flex;flex-direction:column;align-items:flex-start;gap:5px;background:#ecf5f0;border-color:#d6e9dd}
+.doctor-ui .week-summary .summary-zone strong{font-size:17px;letter-spacing:0}
+.doctor-ui .consultation-settings-fields{display:grid;grid-template-columns:1fr 1fr;gap:26px}
+.doctor-ui .editor-number-unit{display:flex;align-items:center;border:1px solid #becfc7;border-radius:9px;padding-right:14px;background:white}
+.doctor-ui .editor-number-unit input{border:0;box-shadow:none;flex:1;background:transparent}
+.doctor-ui .editor-number-unit:focus-within{border-color:var(--editor-brand);box-shadow:0 0 0 3px #087f711b}
+.doctor-ui .editor-number-unit input:focus{box-shadow:none}
+.doctor-ui .editor-number-unit>span{font-size:13px;color:#536d61}
+.doctor-ui .week-card{padding:0;overflow:hidden}
+.doctor-ui .week-card>.editor-card-header{padding:26px 28px;margin:0;border-bottom:1px solid #e2ebe5}
+.doctor-ui .week-day{display:grid;grid-template-columns:160px minmax(0,1fr);gap:24px;padding:24px 28px;border-bottom:1px solid #e5ece7;background:#fcfdfc}
+.doctor-ui .week-day.active{background:white}
+.doctor-ui .week-day:last-child{border-bottom:0}
+.doctor-ui .week-day-heading{display:flex;flex-direction:column;align-items:flex-start;gap:14px}
+.doctor-ui .week-day-label{display:flex;align-items:center;gap:12px}
+.doctor-ui .week-day-label h3{font-size:16px}
+.doctor-ui .week-day-label>div>span{display:block;font-size:12px;color:#536d61;margin-top:2px}
+.doctor-ui .week-day.active .week-day-label>div>span{color:#087864}
+.doctor-ui .editor-switch{position:relative;display:block;width:40px;height:24px;flex:none;cursor:pointer}
+.doctor-ui .editor-switch input{position:absolute;inset:0;opacity:0;min-width:40px;width:40px;min-height:24px;height:24px;z-index:1;cursor:pointer}
+.doctor-ui .editor-switch>span{display:block;background:#c6d5cd;border-radius:30px;width:40px;height:24px;transition:background .15s}
+.doctor-ui .editor-switch>span:after{content:'';display:block;position:absolute;left:3px;top:3px;width:18px;height:18px;background:white;border-radius:50%;box-shadow:0 1px 3px #173b3630;transition:transform .15s}
+.doctor-ui .editor-switch input:checked+span{background:var(--editor-brand)}
+.doctor-ui .editor-switch input:checked+span:after{transform:translateX(16px)}
+.doctor-ui .editor-switch input:focus-visible+span{outline:3px solid #087f71;outline-offset:3px}
+.doctor-ui .week-day-content{display:flex;flex-wrap:wrap;align-items:flex-start;gap:14px;min-width:0}
+.doctor-ui .week-time-window{position:relative;flex:1 1 290px;max-width:410px;min-width:0;border:1px solid #dae6de;border-radius:11px;padding:15px;background:#fafcfb}
+.doctor-ui .week-time-window.has-error{border-color:#d49199;background:#fffafa}
+.doctor-ui .week-period-label{display:block;font-size:12px;font-weight:650;color:#507664;padding-right:42px;margin-bottom:15px;min-height:24px}
+.doctor-ui .week-time-fields{display:grid;grid-template-columns:minmax(0,1fr) 16px minmax(0,1fr);gap:10px;align-items:end}
+.doctor-ui .week-time-fields>.editor-icon-button{position:absolute;right:7px;top:7px;background:transparent;border-color:transparent}
+.doctor-ui .week-time-fields>.editor-icon-button:hover{background:#fff0f1}
+.doctor-ui .week-time-fields input{min-height:46px;height:46px;padding:10px 8px;font-size:15px}
+.doctor-ui .week-time-fields label{font-size:12px;font-weight:500}
+.doctor-ui .time-separator{align-self:end;height:46px;display:grid;place-items:center;font-size:13px;color:#536d61}
+.doctor-ui .range-error{display:block;margin-top:10px}
+.doctor-ui .range-error:empty{display:none}
+.doctor-ui .add-window{flex-basis:100%;justify-content:flex-start;align-self:start;min-height:36px;font-size:13px}
+.doctor-ui .week-limit{display:block;flex-basis:100%;color:#536d61;font-size:12px}
+.doctor-ui .week-day-closed{display:flex;align-items:center;gap:10px;color:#536d61;font-size:14px;min-height:56px}
+.doctor-ui .week-day-closed app-icon{width:18px;height:18px;color:#92a499}
+.doctor-ui .week-day-closed small{display:block;font-size:12px;line-height:1.5;margin-top:4px}
+.doctor-ui .availability-save-bar{margin-top:26px;align-items:center}
+.doctor-ui .availability-save-bar>div{flex:1;min-width:0}
+.doctor-ui .availability-save-bar strong{font-size:15px;font-weight:650}
+.doctor-ui .availability-save-bar p{font-size:13px;color:#5c796a;margin-top:4px}
+.doctor-ui .availability-save-bar .editor-inline{font-size:13px;margin-top:5px}
+.doctor-ui .availability-save-bar>.editor-button{flex:none}
+.doctor-ui .copy-day-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:22px 0}
+.doctor-ui .copy-day-options>label{display:flex;align-items:center;gap:12px;border:1px solid #d4e3d9;border-radius:10px;padding:14px;font-size:14px;cursor:pointer}
+.doctor-ui .copy-day-options>label.checked{border-color:#4a9a7a;background:#edf7f0}
+.doctor-ui .copy-day-options small{display:block;font-size:12px;color:#536d61;margin-top:3px}
+.doctor-ui .editor-consent{display:flex;align-items:center;gap:11px;font-size:14px;line-height:1.6;margin-top:14px;cursor:pointer}
+@media(min-width:1600px){.doctor-workspace .content-area{padding-inline:52px}.doctor-ui .week-day{grid-template-columns:180px minmax(0,1fr)}}
+@media(max-width:1200px){.doctor-workspace .content-area{padding:30px 26px 48px}.doctor-ui .editor-card{padding:24px}.doctor-ui .account-identity{align-items:flex-start}.doctor-ui .account-identity h2{font-size:23px}.doctor-ui .account-identity-person{gap:18px}.doctor-ui .editor-save-bar{padding:22px 24px;gap:24px}.doctor-ui .security-layout{grid-template-columns:1fr;gap:28px}.doctor-ui .security-advice ul{grid-template-columns:1fr 1fr}.doctor-ui .week-summary>div{padding:18px;gap:12px}.doctor-ui .week-summary .editor-section-icon{display:none}.doctor-ui .week-day{padding:22px 24px;grid-template-columns:145px minmax(0,1fr);gap:18px}.doctor-ui .week-card{padding:0}.doctor-ui .service-list-head,.doctor-ui .service-item{grid-template-columns:minmax(0,1fr) 75px 95px 88px;gap:12px;padding-inline:10px}.doctor-ui .editor-callout{flex-wrap:wrap}.doctor-ui .editor-callout>a{margin-left:33px}}
+@media(max-width:1000px){.doctor-ui .account-identity{flex-direction:column;gap:20px}.doctor-ui .account-identity>.editor-button{align-self:flex-start}.doctor-ui .editor-save-bar{align-items:stretch;flex-direction:column;gap:18px}.doctor-ui .editor-save-bar>.editor-field{max-width:none}.doctor-ui .editor-save-action{align-items:stretch}.doctor-ui .editor-tabs button{padding-inline:14px;font-size:14px}.doctor-ui .editor-card-header.with-action{align-items:flex-start;flex-wrap:wrap}.doctor-ui .week-summary{grid-template-columns:1fr 1fr}.doctor-ui .week-summary .summary-zone{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;gap:4px 16px}.doctor-ui .summary-zone>small{grid-column:1/-1}.doctor-ui .editor-fields{grid-template-columns:1fr}.doctor-ui .consultation-settings-fields{grid-template-columns:1fr}.doctor-ui .service-list-head{display:none}.doctor-ui .service-item{grid-template-columns:minmax(0,1fr) 88px;gap:8px 14px;padding:20px 0}.doctor-ui .service-name{grid-column:1;grid-row:1}.doctor-ui .service-duration{grid-column:1;grid-row:3;padding-left:48px}.doctor-ui .service-price{grid-column:1;grid-row:2;padding-left:48px}.doctor-ui .service-actions{grid-column:2;grid-row:1/4;align-self:start}.doctor-ui .service-duration:before{content:'Durée commune : '}.doctor-ui .week-day{grid-template-columns:1fr;gap:16px}.doctor-ui .week-day-heading{flex-direction:row;align-items:center;justify-content:space-between}.doctor-ui .week-time-window{max-width:none}.doctor-ui .availability-save-bar>.editor-button{align-self:stretch}}
+@media(max-width:760px){.doctor-workspace .content-area{padding:26px 20px 42px}.doctor-ui .editor-fields{grid-template-columns:1fr 1fr}.doctor-ui .account-identity{flex-direction:row;align-items:center}.doctor-ui .account-identity-person{gap:16px}.doctor-ui .account-identity>.editor-button{align-self:center}.doctor-ui .editor-tabs button{padding-inline:18px}.doctor-ui .security-advice ul{grid-template-columns:1fr}.doctor-ui .week-day{grid-template-columns:140px minmax(0,1fr)}.doctor-ui .week-day-heading{flex-direction:column;align-items:flex-start}.doctor-ui .consultation-settings-fields{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.doctor-workspace .content-area{padding:24px 16px 36px}.doctor-workspace .page-heading p{font-size:14px}.doctor-ui .editor-card{padding:22px 18px;border-radius:13px}.doctor-ui .account-identity{flex-direction:column;align-items:stretch;padding:22px 18px}.doctor-ui .account-identity-person{align-items:flex-start;gap:16px}.doctor-ui .account-identity-person app-avatar{transform:scale(.8);transform-origin:top left;width:71px;height:71px;flex:none}.doctor-ui .account-identity h2{font-size:22px;margin-top:4px}.doctor-ui .account-identity .editor-kicker{font-size:10px}.doctor-ui .account-identity>.editor-button{align-self:stretch}.doctor-ui .account-identity p{font-size:13px}.doctor-ui .editor-badge{font-size:11px}.doctor-ui .editor-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;padding:0}.doctor-ui .editor-tabs button{display:flex;flex-direction:column;gap:7px;align-items:center;padding:11px 5px 14px;font-size:12px;line-height:1.4;min-height:76px}.doctor-ui .editor-tabs button.selected:after{left:4px;right:4px}.doctor-ui .editor-tabs app-icon{width:19px;height:19px}.doctor-ui .editor-fields{grid-template-columns:1fr;gap:20px}.doctor-ui .editor-card-header{gap:11px;margin-bottom:24px}.doctor-ui .editor-card-header h2{font-size:19px}.doctor-ui .editor-card-header p{font-size:13px}.doctor-ui .editor-section-icon{width:36px;height:36px;border-radius:9px}.doctor-ui .editor-save-bar{padding:22px 18px;border-radius:13px}.doctor-ui .editor-save-action>small{text-align:center}.doctor-ui .editor-button{min-height:46px;font-size:14px}.doctor-ui .editor-card-header.with-action .editor-button{width:100%}.doctor-ui .security-layout{gap:26px}.doctor-ui .security-layout .editor-button{justify-self:stretch;min-width:0}.doctor-ui .security-advice{padding:20px}.doctor-ui .editor-callout>app-icon{display:none}.doctor-ui .editor-callout{padding:16px}.doctor-ui .editor-callout>a{margin-left:0;flex-basis:100%}.doctor-ui .service-name .editor-section-icon{display:none}.doctor-ui .service-duration,.doctor-ui .service-price{padding-left:0}.doctor-ui .service-actions{gap:6px}.doctor-ui .service-list-head,.doctor-ui .service-item{grid-template-columns:minmax(0,1fr) 86px}.doctor-ui .editor-dialog{max-height:calc(100dvh - 32px)}.doctor-ui .editor-dialog-heading{padding:20px;gap:12px}.doctor-ui .editor-dialog-heading h2{font-size:20px}.doctor-ui .dialog-form{padding:22px 20px}.doctor-ui .editor-dialog-actions{flex-direction:column-reverse;gap:10px}.doctor-ui .editor-dialog-actions>.editor-button{width:100%}.doctor-ui .week-summary{gap:12px;margin-bottom:22px}.doctor-ui .week-summary>div{padding:16px 14px}.doctor-ui .week-summary strong{font-size:23px}.doctor-ui .week-summary strong>span{font-size:12px}.doctor-ui .week-summary small{font-size:12px}.doctor-ui .week-summary .summary-zone{grid-template-columns:1fr}.doctor-ui .consultation-settings-fields{grid-template-columns:1fr;gap:20px}.doctor-ui .editor-fieldset{gap:22px}.doctor-ui .week-card{padding:0}.doctor-ui .week-card>.editor-card-header{padding:22px 18px}.doctor-ui .week-day{padding:21px 16px;grid-template-columns:1fr;gap:18px}.doctor-ui .week-day-heading{flex-direction:row;align-items:center;gap:10px}.doctor-ui .week-day-heading .editor-button{font-size:12px;padding:8px 10px;gap:6px}.doctor-ui .week-day-heading .editor-button app-icon{width:16px;height:16px}.doctor-ui .week-day-label{gap:10px}.doctor-ui .week-day-label h3{font-size:15px}.doctor-ui .week-day-label>div>span{font-size:12px}.doctor-ui .week-time-window{flex-basis:100%;padding:14px}.doctor-ui .week-time-fields{gap:8px}.doctor-ui .week-time-fields input{font-size:16px;padding-inline:8px}.doctor-ui .week-day-closed{font-size:13px;min-height:30px}.doctor-ui .availability-save-bar>.editor-button{width:100%}.doctor-ui .availability-save-bar .editor-inline{font-size:13px}.doctor-ui .copy-day-options{gap:10px}.doctor-ui .copy-day-options>label{padding:12px;gap:10px}}
+@media(prefers-reduced-motion:reduce){.doctor-ui *{transition:none!important;scroll-behavior:auto!important}.doctor-ui .editor-spinner{animation-duration:1.8s}}

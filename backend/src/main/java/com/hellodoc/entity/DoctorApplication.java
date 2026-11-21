@@ -2,6 +2,7 @@ package com.hellodoc.entity;
 
 import jakarta.persistence.*;
 import java.util.UUID;
+import java.time.Instant;
 
 @Entity
 @Table(name="doctor_applications", uniqueConstraints=@UniqueConstraint(name="uk_doctor_application_user",columnNames="user_id"))
@@ -29,6 +30,10 @@ public class DoctorApplication {
  @Column(name="document_content_type", length=40) private String documentContentType;
  @Column(name="document_size_bytes") private Long documentSizeBytes;
  @OneToOne(mappedBy="application") private Doctor doctor;
+ @Column(name="approval_email_status",length=20) private String approvalEmailStatus;
+ @Column(name="approval_email_error",length=40) private String approvalEmailError;
+ @Column(name="approval_email_attempted_at") private Instant approvalEmailAttemptedAt;
+ @Column(name="approval_email_sent_at") private Instant approvalEmailSentAt;
  protected DoctorApplication() { }
  public DoctorApplication(UserAccount user,String serviceTitle,String specialty,String licenseNumber,String city,String practiceAddress,int durationMinutes,String workStart,String workEnd,int pauseMinutes,String workingDaysJson,String servicesJson,String description){
   this.user=user;this.serviceTitle=serviceTitle;this.specialty=specialty;this.licenseNumber=licenseNumber;this.city=city;this.practiceAddress=practiceAddress;this.durationMinutes=durationMinutes;this.workStart=workStart;this.workEnd=workEnd;this.pauseMinutes=pauseMinutes;this.workingDaysJson=workingDaysJson;this.servicesJson=servicesJson;this.description=description;this.status="PENDING";
@@ -41,4 +46,10 @@ public class DoctorApplication {
  public void attachDoctorDocument(String storageKey,String originalName,String contentType,long sizeBytes){this.documentStorageKey=storageKey;this.documentOriginalName=originalName;this.documentContentType=contentType;this.documentSizeBytes=sizeBytes;}
  public String getDocumentStorageKey(){return documentStorageKey;} public String getDocumentOriginalName(){return documentOriginalName;} public String getDocumentContentType(){return documentContentType;} public Long getDocumentSizeBytes(){return documentSizeBytes;} public boolean hasDoctorDocument(){return documentStorageKey!=null&&documentOriginalName!=null&&documentContentType!=null&&documentSizeBytes!=null;}
  public String getDescription(){return description;} public void decide(String status,String reason){this.status=status;this.decisionReason=reason;}
+ public String getApprovalEmailStatus(){return approvalEmailStatus==null?"NOT_SENT":approvalEmailStatus;}
+ public String getApprovalEmailError(){return approvalEmailError;}
+ public Instant getApprovalEmailAttemptedAt(){return approvalEmailAttemptedAt;}
+ public Instant getApprovalEmailSentAt(){return approvalEmailSentAt;}
+ public void queueApprovalEmail(boolean enabled){approvalEmailStatus=enabled?"QUEUED":"DISABLED";approvalEmailError=null;}
+ public void recordApprovalEmail(String status,String error){approvalEmailStatus=status;approvalEmailError=error;approvalEmailAttemptedAt=Instant.now();if("SENT".equals(status))approvalEmailSentAt=approvalEmailAttemptedAt;}
 }

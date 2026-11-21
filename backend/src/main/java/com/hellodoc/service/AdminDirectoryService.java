@@ -18,7 +18,9 @@ public class AdminDirectoryService {
     private final PatientRepository patients;
     private final AdminAccountDeletionRepository deletion;
     private final DoctorDocumentStorageService documents;
-    public AdminDirectoryService(DoctorRepository doctors,PatientRepository patients,AdminAccountDeletionRepository deletion,DoctorDocumentStorageService documents){this.doctors=doctors;this.patients=patients;this.deletion=deletion;this.documents=documents;}
+    private final AppointmentRepository appointments;
+    private final AdministrativeAuditService audit;
+    public AdminDirectoryService(DoctorRepository doctors,PatientRepository patients,AdminAccountDeletionRepository deletion,DoctorDocumentStorageService documents,AppointmentRepository appointments,AdministrativeAuditService audit){this.doctors=doctors;this.patients=patients;this.deletion=deletion;this.documents=documents;this.appointments=appointments;this.audit=audit;}
 
     @Transactional(readOnly=true)
     public Page<AdminDoctorDto> doctors(int page,int size){return doctors.findAll(pageRequest(page,size,"serviceTitle")).map(AdminDoctorDto::from);}
@@ -32,6 +34,7 @@ public class AdminDirectoryService {
     @Transactional
     public AdminDoctorDto setDoctorStatus(UUID id,AccountStatusRequest request){
         Doctor doctor=doctors.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Médecin introuvable."));
+        audit.record("ACTIVE".equals(request.status())?"ACCOUNT_ACTIVATED":"ACCOUNT_DEACTIVATED","DOCTOR",id);
         boolean active="ACTIVE".equals(request.status());doctor.setActive(active);doctor.getUser().setStatus(request.status());return AdminDoctorDto.from(doctor);
     }
 
@@ -40,12 +43,15 @@ public class AdminDirectoryService {
         Patient patient=patients.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Patient introuvable."));
         UserAccount user=patient.getUser();
         if(user.getRole()!=UserRole.USER&&user.getRole()!=UserRole.PATIENT)throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Patient introuvable.");
+        audit.record("ACTIVE".equals(request.status())?"ACCOUNT_ACTIVATED":"ACCOUNT_DEACTIVATED","PATIENT",id);
         user.setStatus(request.status());return AdminPatientDto.from(patient);
     }
 
     @Transactional
     public void deleteDoctor(UUID id){
         Doctor doctor=doctors.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Médecin introuvable."));
+        if(appointments.countByDoctorId(id)>0)throw new ResponseStatusException(HttpStatus.CONFLICT,"Ce compte possède des rendez-vous. Désactivez-le pour conserver leur historique.");
+        audit.record("ACCOUNT_DELETED","DOCTOR",id);
         UUID doctorId=doctor.getId();DoctorApplication application=doctor.getApplication();UserAccount user=doctor.getUser();String storageKey=application.getDocumentStorageKey();
         deletion.deleteAbsences(doctorId);
         deletion.deleteAvailabilities(doctorId);
@@ -60,6 +66,8 @@ public class AdminDirectoryService {
     public void deletePatient(UUID id){
         Patient patient=patients.findById(id).orElseThrow(()->new ResponseStatusException(HttpStatus.NOT_FOUND,"Patient introuvable."));
         UserAccount user=patient.getUser();if(user.getRole()!=UserRole.USER&&user.getRole()!=UserRole.PATIENT)throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Patient introuvable.");
+        if(appointments.countByPatientId(id)>0)throw new ResponseStatusException(HttpStatus.CONFLICT,"Ce compte possède des rendez-vous. Désactivez-le pour conserver leur historique.");
+        audit.record("ACCOUNT_DELETED","PATIENT",id);
         deletion.deletePatient(patient.getId());deletion.deleteUser(user.getId());
     }
 

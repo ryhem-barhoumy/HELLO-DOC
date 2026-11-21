@@ -18,7 +18,7 @@ public class AdminAccountDeletionRepository {
     @Transactional public int deleteDoctor(UUID doctorId) { return delete("delete from doctors where id = :id", doctorId); }
     @Transactional public int deleteDoctorApplication(UUID applicationId) { return delete("delete from doctor_applications where id = :id", applicationId); }
     @Transactional public int deletePatient(UUID patientId) { return delete("delete from patients where id = :id", patientId); }
-    @Transactional public int deleteUser(UUID userId) { return delete("delete from users where id = :id", userId); }
+    @Transactional public int deleteUser(UUID userId) { delete("delete from profile_photos where user_id = :id",userId);return delete("delete from users where id = :id", userId); }
 
     private int delete(String sql, UUID id) {
         return entityManager.createNativeQuery(sql).setParameter("id", id).executeUpdate();

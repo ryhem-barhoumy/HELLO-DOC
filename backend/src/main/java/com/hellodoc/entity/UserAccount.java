@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import java.util.UUID;
 
 @Entity
+@org.hibernate.annotations.DynamicUpdate
 @Table(name = "users", uniqueConstraints = @UniqueConstraint(name = "uk_users_email", columnNames = "email"))
 public class UserAccount {
     @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
@@ -15,6 +16,7 @@ public class UserAccount {
     @Column(nullable = false, length = 255) private String passwordHash;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 16) private UserRole role;
     @Column(nullable = false, length = 20) private String status;
+    @Column(length=36) private String photoVersion;
     protected UserAccount() { }
     public UserAccount(String firstName, String lastName, String email, String passwordHash, UserRole role, String status) {
         this(firstName,lastName,email,null,null,passwordHash,role,status);
@@ -29,4 +31,7 @@ public class UserAccount {
     public void changePassword(String passwordHash){this.passwordHash=passwordHash;}
     public void setRoleAndStatus(UserRole role,String status){this.role=role;this.status=status;}
     public void setStatus(String status){this.status=status;}
+    public String getPhotoVersion(){return photoVersion;}
+    public void setPhotoVersion(String version){this.photoVersion=version;}
+    public String ownPhotoUrl(){return photoVersion==null?null:"/api/account/me/photo?v="+photoVersion;}
 }

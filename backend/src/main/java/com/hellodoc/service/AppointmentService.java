@@ -36,7 +36,7 @@ public class AppointmentService {
         Appointment appointment=new Appointment(doctor,patient,service.name(),service.price(),slot.startsAt(),slot.endsAt(),clean(request.reason()));
         try{appointment=appointments.saveAndFlush(appointment);}catch(DataIntegrityViolationException e){throw new ResponseStatusException(HttpStatus.CONFLICT,"Ce créneau vient d’être réservé. Choisissez-en un autre.");}
         record(appointment,actor,null,AppointmentStatus.PENDING,"Demande de rendez-vous créée.");
-        notifications.create(doctor.getUser(),appointment,"APPOINTMENT_REQUEST","Nouvelle demande de rendez-vous",actor.getFirstName()+" "+actor.getLastName()+" demande "+service.name()+" le "+slot.startsAt().atZone(BUSINESS_ZONE).toLocalDateTime()+".");
+        notifications.create(doctor.getUser(),appointment,"APPOINTMENT_REQUEST","Nouvelle demande de rendez-vous",actor.getFirstName()+" "+actor.getLastName()+" demande "+service.name()+" le "+displayDate(slot.startsAt())+".");
         return dto(appointment);
     }
 
@@ -61,19 +61,31 @@ public class AppointmentService {
     }
 
     @Transactional
-    public AppointmentDto cancel(String email,UUID id,String reason){UserAccount actor=activeUser(email);if(actor.getRole()==UserRole.DOCTOR)doctorProfiles.own(email);else if(actor.getRole()!=UserRole.USER&&actor.getRole()!=UserRole.PATIENT)throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Seul le patient ou le médecin du rendez-vous peut l’annuler.");Appointment a=owned(email,id);if(!ACTIVE.contains(a.getStatus())&&a.getStatus()!=AppointmentStatus.TO_RESCHEDULE)throw new ResponseStatusException(HttpStatus.CONFLICT,"Ce rendez-vous ne peut plus être annulé.");if(a.getStatus()!=AppointmentStatus.TO_RESCHEDULE&&!a.getStartAt().isAfter(Instant.now()))throw new ResponseStatusException(HttpStatus.CONFLICT,"Un rendez-vous déjà commencé ne peut plus être annulé.");AppointmentStatus old=a.getStatus();a.changeStatus(AppointmentStatus.CANCELLED,clean(reason));record(a,actor,old,AppointmentStatus.CANCELLED,clean(reason));UserAccount recipient=actor.getRole()==UserRole.DOCTOR?a.getPatient().getUser():a.getDoctor().getUser();notifications.create(recipient,a,"APPOINTMENT_CANCELLED","Rendez-vous annulé",actor.getFirstName()+" "+actor.getLastName()+" a annulé le rendez-vous du "+a.getStartAt().atZone(BUSINESS_ZONE).toLocalDateTime()+".");return dto(a);}
+    public AppointmentDto cancel(String email,UUID id,String reason){
+        UserAccount actor=activeUser(email);
+        if(actor.getRole()==UserRole.DOCTOR)doctorProfiles.own(email);
+        else if(actor.getRole()!=UserRole.USER&&actor.getRole()!=UserRole.PATIENT)throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Seul le patient ou le médecin du rendez-vous peut l’annuler.");
+        Appointment a=owned(email,id);
+        if(actor.getRole()==UserRole.DOCTOR&&a.getStatus()!=AppointmentStatus.CONFIRMED)
+            throw new ResponseStatusException(HttpStatus.CONFLICT,a.getStatus()==AppointmentStatus.PENDING?"Pour une demande en attente, utilisez l’action Refuser.":"Le médecin peut annuler uniquement un rendez-vous confirmé.");
+        if(!ACTIVE.contains(a.getStatus())&&a.getStatus()!=AppointmentStatus.TO_RESCHEDULE)throw new ResponseStatusException(HttpStatus.CONFLICT,"Ce rendez-vous ne peut plus être annulé.");
+        if(a.getStatus()!=AppointmentStatus.TO_RESCHEDULE&&!a.getStartAt().isAfter(Instant.now()))throw new ResponseStatusException(HttpStatus.CONFLICT,"Un rendez-vous déjà commencé ne peut plus être annulé.");
+        AppointmentStatus old=a.getStatus();a.changeStatus(AppointmentStatus.CANCELLED,clean(reason));record(a,actor,old,AppointmentStatus.CANCELLED,clean(reason));
+        UserAccount recipient=actor.getRole()==UserRole.DOCTOR?a.getPatient().getUser():a.getDoctor().getUser();
+        notifications.create(recipient,a,"APPOINTMENT_CANCELLED","Rendez-vous annulé",actor.getFirstName()+" "+actor.getLastName()+" a annulé le rendez-vous du "+displayDate(a.getStartAt())+".");return dto(a);
+    }
 
     @Transactional(readOnly=true)
-    public List<TimeSlotDto> rescheduleOptions(String email,UUID id,LocalDate date){UserAccount actor=activeUser(email);validateRoleStatus(actor);Appointment a=owned(email,id);assertReschedulable(a);if(a.getDoctor().getUser().getRole()!=UserRole.DOCTOR||!"ACTIVE".equals(a.getDoctor().getUser().getStatus()))throw new ResponseStatusException(HttpStatus.CONFLICT,"Le profil médecin n’est actuellement pas disponible.");return availableSlots(a.getDoctor().getId(),date,a.getId()).stream().filter(s->!s.startsAt().equals(a.getStartAt())).toList();}
+    public List<TimeSlotDto> rescheduleOptions(String email,UUID id,LocalDate date){patientUser(email);Appointment a=owned(email,id);assertReschedulable(a);if(a.getDoctor().getUser().getRole()!=UserRole.DOCTOR||!"ACTIVE".equals(a.getDoctor().getUser().getStatus()))throw new ResponseStatusException(HttpStatus.CONFLICT,"Le profil médecin n’est actuellement pas disponible.");return availableSlots(a.getDoctor().getId(),date,a.getId()).stream().filter(s->!s.startsAt().equals(a.getStartAt())).toList();}
 
     @Transactional(isolation=org.springframework.transaction.annotation.Isolation.READ_COMMITTED)
     public AppointmentDto reschedule(String email,UUID id,AppointmentRescheduleRequest request){
-        UserAccount actor=activeUser(email);Appointment a=owned(email,id);if(actor.getRole()==UserRole.DOCTOR)doctorProfiles.own(email);else if(actor.getRole()!=UserRole.USER&&actor.getRole()!=UserRole.PATIENT)throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Action réservée au patient ou au médecin concerné.");assertReschedulable(a);
+        UserAccount actor=patientUser(email);Appointment a=owned(email,id);assertReschedulable(a);
         Doctor doctor=doctors.lockActiveById(a.getDoctor().getId()).filter(d->d.getUser().getRole()==UserRole.DOCTOR&&"ACTIVE".equals(d.getUser().getStatus())).orElseThrow(()->new ResponseStatusException(HttpStatus.CONFLICT,"Le profil médecin n’est actuellement pas disponible."));
         LocalDate date=request.startAt().atZone(BUSINESS_ZONE).toLocalDate();TimeSlotDto slot=availableSlots(doctor.getId(),date,a.getId()).stream().filter(s->s.startsAt().equals(request.startAt())).findFirst().orElseThrow(()->new ResponseStatusException(HttpStatus.CONFLICT,"Le nouveau créneau n’est plus disponible."));
         AppointmentStatus previousStatus=a.getStatus();Instant previousStart=a.getStartAt();
         a.reschedule(slot.startsAt(),slot.endsAt(),clean(request.reason()));appointments.flush();
-        record(a,actor,previousStatus,a.getStatus(),"Reprogrammé du "+previousStart.atZone(BUSINESS_ZONE).toLocalDateTime()+" au "+slot.startsAt().atZone(BUSINESS_ZONE).toLocalDateTime()+".");UserAccount recipient=actor.getRole()==UserRole.DOCTOR?a.getPatient().getUser():a.getDoctor().getUser();notifications.create(recipient,a,"APPOINTMENT_RESCHEDULED","Rendez-vous reprogrammé","Le rendez-vous a été déplacé au "+slot.startsAt().atZone(BUSINESS_ZONE).toLocalDateTime()+".");return dto(a);
+        record(a,actor,previousStatus,a.getStatus(),"Reprogrammé du "+displayDate(previousStart)+" au "+displayDate(slot.startsAt())+".");UserAccount recipient=actor.getRole()==UserRole.DOCTOR?a.getPatient().getUser():a.getDoctor().getUser();notifications.create(recipient,a,"APPOINTMENT_RESCHEDULED","Rendez-vous reprogrammé","Le rendez-vous a été déplacé au "+displayDate(slot.startsAt())+".");return dto(a);
     }
 
     @Transactional(readOnly=true)
@@ -89,10 +101,11 @@ public class AppointmentService {
     private UserAccount patientUser(String email){UserAccount user=activeUser(email);if(user.getRole()!=UserRole.USER&&user.getRole()!=UserRole.PATIENT)throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Un compte patient actif est requis.");return user;}
     private void validateRoleStatus(UserAccount user){if(user.getRole()==UserRole.DOCTOR)doctorProfiles.own(user.getEmail());else if(user.getRole()!=UserRole.USER&&user.getRole()!=UserRole.PATIENT)throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Action réservée au patient ou au médecin concerné.");}
     private UserAccount activeUser(String email){UserAccount user=users.findByEmailIgnoreCase(email).orElseThrow(()->new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Authentification requise."));if(!"ACTIVE".equals(user.getStatus()))throw new ResponseStatusException(HttpStatus.FORBIDDEN,"Un compte actif est requis.");return user;}
-    private void assertReschedulable(Appointment a){if(!ACTIVE.contains(a.getStatus())&&a.getStatus()!=AppointmentStatus.TO_RESCHEDULE)throw new ResponseStatusException(HttpStatus.CONFLICT,"Ce rendez-vous ne peut pas être reprogrammé.");}
+    private void assertReschedulable(Appointment a){if(a.getStatus()!=AppointmentStatus.TO_RESCHEDULE&&!a.getStartAt().isAfter(Instant.now()))throw new ResponseStatusException(HttpStatus.CONFLICT,"Un rendez-vous déjà commencé ne peut plus être reprogrammé.");if(!ACTIVE.contains(a.getStatus())&&a.getStatus()!=AppointmentStatus.TO_RESCHEDULE)throw new ResponseStatusException(HttpStatus.CONFLICT,"Ce rendez-vous ne peut pas être reprogrammé.");}
     private void record(Appointment a,UserAccount actor,AppointmentStatus old,AppointmentStatus next,String reason){history.save(new AppointmentStatusHistory(a,actor,old,next,reason));}
     private AppointmentDto dto(Appointment a){List<AppointmentStatusHistoryDto> changes=history.findByAppointmentIdOrderByChangedAtAsc(a.getId()).stream().map(h->new AppointmentStatusHistoryDto(h.getOldStatus(),h.getNewStatus(),h.getChangedAt(),h.getChangedBy().getFirstName()+" "+h.getChangedBy().getLastName(),h.getReason())).toList();ReviewDto review=reviews.findByAppointmentId(a.getId()).map(ReviewDto::from).orElse(null);return AppointmentDto.from(a,changes,review);}
     private String statusTitle(AppointmentStatus status){return switch(status){case CONFIRMED->"Rendez-vous confirmé";case REJECTED->"Demande de rendez-vous refusée";case COMPLETED->"Consultation terminée";case NO_SHOW->"Absence au rendez-vous";default->"Mise à jour du rendez-vous";};}
-    private String statusMessage(AppointmentStatus status,Appointment a){return switch(status){case CONFIRMED->"Votre rendez-vous du "+a.getStartAt().atZone(BUSINESS_ZONE).toLocalDateTime()+" est confirmé.";case REJECTED->"Le médecin ne peut pas accepter le rendez-vous du "+a.getStartAt().atZone(BUSINESS_ZONE).toLocalDateTime()+".";case COMPLETED->"La consultation du "+a.getStartAt().atZone(BUSINESS_ZONE).toLocalDateTime()+" est terminée.";case NO_SHOW->"Le médecin a indiqué votre absence au rendez-vous du "+a.getStartAt().atZone(BUSINESS_ZONE).toLocalDateTime()+".";default->"Le statut de votre rendez-vous a été mis à jour.";};}
+    private String statusMessage(AppointmentStatus status,Appointment a){return switch(status){case CONFIRMED->"Votre rendez-vous du "+displayDate(a.getStartAt())+" est confirmé.";case REJECTED->"Le médecin ne peut pas accepter le rendez-vous du "+displayDate(a.getStartAt())+".";case COMPLETED->"La consultation du "+displayDate(a.getStartAt())+" est terminée.";case NO_SHOW->"Le médecin a indiqué votre absence au rendez-vous du "+displayDate(a.getStartAt())+".";default->"Le statut de votre rendez-vous a été mis à jour.";};}
+    private String displayDate(Instant instant){return java.time.format.DateTimeFormatter.ofPattern("d MMMM yyyy 'à' HH:mm",java.util.Locale.FRENCH).withZone(BUSINESS_ZONE).format(instant);}
     private int safePage(int page){return Math.max(0,page);}private int safeSize(int size){return Math.max(1,Math.min(size,100));}private String clean(String value){return value==null||value.isBlank()?null:value.trim();}
 }

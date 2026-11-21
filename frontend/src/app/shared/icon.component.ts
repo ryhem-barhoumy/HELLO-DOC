@@ -8,6 +8,13 @@ import { Component, Input } from '@angular/core';
 export class IconComponent {
   @Input() name = '';
   private paths: Record<string,string> = {
+    security: 'M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3ZM9 12l2 2 4-4',
+    camera: 'M3 7h5l2-3h4l2 3h5v13H3ZM16 13a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
+    services: 'M8 3h8v4H8ZM6 5H4v16h16V5h-2M8 12h8M8 16h6',
+    edit: 'm16 3 5 5L9 20l-6 1 1-6L16 3ZM13 6l5 5',
+    trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7',
+    copy: 'M9 9h12v12H9ZM5 15H3V3h12v2',
+    plus: 'M12 5v14M5 12h14',
     '': 'M3 10 12 3l9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z',
     medecins: 'M12 3v18M3 12h18M7 3h10v4h4v10h-4v4H7v-4H3V7h4Z',
     patients: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M16 4a4 4 0 0 1 0 8M22 21v-2a4 4 0 0 0-3-3.87M13 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
