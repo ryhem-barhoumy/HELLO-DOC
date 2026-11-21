@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="hd_blue">#155EEF</color>
+    <color name="hd_blue_dark">#123D73</color>
+    <color name="hd_teal">#0CA7A5</color>
+    <color name="hd_green">#098F83</color>
+    <color name="hd_tint">#EAF2FF</color>
+    <color name="hd_mint">#E8FAF6</color>
+    <color name="hd_background">#F5F8FC</color>
+    <color name="hd_text">#182C45</color>
+    <color name="hd_muted">#6B819A</color>
+    <color name="hd_white">#FFFFFF</color>
+    <color name="hd_line">#DFE8F2</color>
+    <color name="hd_error">#BE3455</color>
+    <color name="hd_error_light">#FFF0F3</color>
+    <color name="hd_deep">#112C4E</color>
+    <color name="hd_warning">#956500</color>
+    <color name="hd_warning_light">#FFF4D5</color>
+    <color name="hd_home_background">#F4F9F7</color>
+    <color name="hd_home_line">#D4EBE1</color>
+</resources>

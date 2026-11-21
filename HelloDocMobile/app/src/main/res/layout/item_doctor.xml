@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" app:cardCornerRadius="21dp" app:cardBackgroundColor="@color/hd_white" app:cardElevation="1dp" app:strokeColor="@color/hd_line" app:strokeWidth="1dp">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+      <ImageView android:layout_width="66dp" android:layout_height="66dp" android:background="@drawable/bg_avatar" android:padding="7dp" android:src="@drawable/medical_symbol" android:contentDescription="@string/doctor_medecin"/>
+      <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical" android:paddingStart="13dp">
+        <TextView android:id="@+id/tvName" android:layout_width="match_parent" android:layout_height="wrap_content" android:textColor="@color/hd_text" android:textSize="17sp" android:fontFamily="sans-serif-medium"/>
+        <TextView android:id="@+id/tvSpecialty" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:textColor="@color/hd_blue" android:textSize="13sp"/>
+        <TextView android:id="@+id/tvCity" style="@style/HdCaption" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:maxLines="2"/>
+      </LinearLayout>
+    </LinearLayout>
+    <TextView android:id="@+id/tvNext" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="13dp" android:padding="10dp" android:background="@drawable/bg_status" android:textColor="@color/hd_green" android:textSize="13sp"/>
+    <com.google.android.material.button.MaterialButton android:id="@+id/btnDetails" style="@style/HdButton" android:layout_width="match_parent" android:layout_height="44dp" android:layout_marginTop="12dp" android:text="@string/doctor_voir_le_profil_et_les_creneaux"/>
+  </LinearLayout>
+</com.google.android.material.card.MaterialCardView>
