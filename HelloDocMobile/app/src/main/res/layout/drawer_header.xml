@@ -1,6 +1,0 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="204dp" android:orientation="vertical" android:gravity="bottom" android:padding="22dp" android:background="@drawable/bg_drawer_header">
-  <ImageView android:layout_width="62dp" android:layout_height="62dp" android:padding="10dp" android:background="@drawable/bg_white_round" android:src="@drawable/medical_symbol" android:contentDescription="@string/app_name"/>
-  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="13dp" android:text="@string/drawer_brand" android:textColor="@color/hd_white" android:textSize="24sp" android:fontFamily="sans-serif-medium"/>
-  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="@string/drawer_subtitle" android:textColor="#E7FFFA" android:textSize="13sp"/>
-</LinearLayout>
