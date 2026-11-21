@@ -28,7 +28,7 @@ Configure your own MySQL connection in the ignored `backend/.env.local` file (co
 
 See [frontend/README.md](frontend/README.md) for frontend details and [backend/docs/HELLO_DOC_BACKEND_SPECIFICATION.md](backend/docs/HELLO_DOC_BACKEND_SPECIFICATION.md) for the API contract. No Node.js backend, mock database, or fake authentication is included.
 
-## Refonte et parcours actuels
+## Avancement et parcours actuels
 
 Voir [le bilan de la première livraison](REFONTE_AVANCEMENT.md). L’inscription médecin porte sur les coordonnées et le justificatif ; les services et horaires sont configurés après approbation. Une absence affectant des rendez-vous exige un avertissement puis une confirmation du médecin avant d’inviter les patients à reprogrammer.
 
@@ -57,4 +57,8 @@ Après le pull :
 2. Web : exécuter `npm ci`, puis `npm start` dans `frontend/`.
 3. Android : ouvrir `mobile/hello-doc-mobile/` dans Android Studio et synchroniser Gradle. Android Studio crée le fichier SDK `local.properties` sur chaque PC. Voir [le guide mobile](mobile/hello-doc-mobile/README.md).
 
-La refonte récente de Mon compte et des disponibilités médecin, les vérifications et les limites sont détaillées dans [le guide frontend](frontend/README.md).
+Les améliorations récentes de Mon compte et des disponibilités médecin, les vérifications et les limites sont détaillées dans [le guide frontend](frontend/README.md).
+
+## Avancement HelloDoc et authentification mobile
+
+Cette version poursuit le développement du web et du backend HelloDoc et ajoute la partie authentification Android : accueil, connexion, création de compte patient ou médecin avec justificatif, puis accès à l’espace du compte. Le mobile utilise les comptes et les API du backend actuel.
