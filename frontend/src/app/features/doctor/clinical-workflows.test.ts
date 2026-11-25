@@ -16,17 +16,23 @@ import { unsavedNoteGuard } from '../../core/guards/unsaved-note.guard';
 
 const appointment={id:'visit-1',status:'COMPLETED',startsAt:'2030-01-16T08:00:00Z',endsAt:'2030-01-16T08:30:00Z',serviceName:'Consultation',patientName:'Patient de test'};
 function fixture(kind:'note'|'reschedule',existing:any=null){
- const reads:Array<{path:string;query:any;stream:Subject<any>}>=[];const writes:Array<{body:any;stream:Subject<any>}>=[];
- const api={get:(path:string,query?:any)=>{if(path.endsWith('/history'))return of([]);if(path.endsWith('/consultation-note'))return of(existing);if(!path.endsWith('/reschedule-options'))return of(appointment);const stream=new Subject();reads.push({path,query,stream});return stream;},put:(_path:string,body:any)=>{const stream=new Subject();writes.push({body,stream});return stream;}};
+ const reads:Array<{path:string;query:any;stream:Subject<any>}>=[];const writes:Array<{body:any;stream:Subject<any>}>=[];const posts:Array<{path:string;stream:Subject<any>}>=[];
+ const api={get:(path:string,query?:any)=>{if(path.endsWith('/history'))return of([]);if(path.endsWith('/consultation-note'))return of(existing);if(!path.endsWith('/reschedule-options'))return of(appointment);const stream=new Subject();reads.push({path,query,stream});return stream;},put:(_path:string,body:any)=>{const stream=new Subject();writes.push({body,stream});return stream;},post:(path:string)=>{const stream=new Subject();posts.push({path,stream});return stream;}};
  const injector=createEnvironmentInjector([{provide:ApiService,useValue:api},{provide:FormBuilder,useValue:new FormBuilder()},{provide:ActivatedRoute,useValue:{snapshot:{paramMap:convertToParamMap({appointmentId:appointment.id})}}}],null as any);
  const component=runInInjectionContext(injector,()=>kind==='note'?new ConsultationNoteComponent():new RescheduleComponent());
- return {component,reads,writes,close:()=>injector.destroy()};
+ return {component,reads,writes,posts,close:()=>injector.destroy()};
 }
-test('clinical form requires a meaningful summary and does not write empty medical records',()=>{
- const f=fixture('note');try{const c=f.component as ConsultationNoteComponent;c.save();c.form.controls.resume.setValue('   ');c.save();assert.equal(f.writes.length,0);assert.equal(c.ready,true);}finally{f.close();}
+test('draft fields are optional while finalization requires a meaningful summary',()=>{
+ const f=fixture('note');try{const c=f.component as ConsultationNoteComponent;assert.equal(c.form.valid,true);c.finalize();assert.equal(f.posts.length,0);assert.equal(f.writes.length,0);assert.equal(c.ready,true);}finally{f.close();}
+});
+test('clinical draft can be finalized after the completed appointment without an ordonnance',()=>{
+ const f=fixture('note',{resume:'Résumé clinique',version:1,status:'DRAFT'});try{const c=f.component as ConsultationNoteComponent;c.finalize();assert.equal(f.posts.length,1);assert.match(f.posts[0].path,/consultation-note\/finalize$/);f.posts[0].stream.next({version:2,status:'FINALIZED',updatedAt:'2030-01-16T10:00:00Z'});assert.equal(c.noteStatus,'FINALIZED');assert.match(c.success,/Aucune ordonnance/);}finally{f.close();}
 });
 test('first save uses no version, blocks duplicates, and accepts the persisted revision',()=>{
  const f=fixture('note');try{const c=f.component as ConsultationNoteComponent;c.form.controls.resume.setValue('Éléments du suivi');c.form.markAsDirty();c.save();c.save();assert.equal(f.writes.length,1);assert.equal(f.writes[0].body.version,null);assert.equal(f.writes[0].body.nextCheck,null);f.writes[0].stream.next({version:0,updatedAt:'2030-01-16T09:00:00Z'});assert.equal(c.version,0);assert.equal(c.form.pristine,true);assert.equal(c.busy,false);}finally{f.close();}
+});
+test('follow-up date, delay and instructions persist in a draft without booking a slot',()=>{
+ const f=fixture('note');try{const c=f.component as ConsultationNoteComponent;c.form.controls.resume.setValue('Résumé médical');c.form.controls.recommendedDelay.setValue('dans deux semaines');c.form.controls.followUpInstructions.setValue('Apporter les résultats');c.form.markAsDirty();c.save();assert.equal(f.writes[0].body.recommendedDelay,'dans deux semaines');assert.equal(f.writes[0].body.followUpInstructions,'Apporter les résultats');assert.equal(f.posts.length,0);f.writes[0].stream.next({version:0,status:'DRAFT',recommendedDelay:'dans deux semaines',followUpInstructions:'Apporter les résultats',updatedAt:'2030-01-16T09:00:00Z'});assert.equal(c.form.pristine,true);}finally{f.close();}
 });
 test('version conflict retains typed clinical content and prevents blind overwrites',()=>{
  const f=fixture('note',{resume:'Ancienne version',version:2});try{const c=f.component as ConsultationNoteComponent;c.form.controls.resume.setValue('Texte à conserver');c.save();assert.equal(f.writes[0].body.version,2);f.writes[0].stream.error({status:409,message:'Une autre version existe.'});assert.equal(c.form.controls.resume.value,'Texte à conserver');assert.equal(c.conflict,true);c.save();assert.equal(f.writes.length,1);}finally{f.close();}

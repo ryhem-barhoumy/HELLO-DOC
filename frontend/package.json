@@ -11,6 +11,7 @@
     "test:approval": "node scripts/test-approval.mjs",
     "test:appointments": "node scripts/test-appointments.mjs",
     "test:clinical": "node scripts/test-clinical.mjs",
+    "test:consultation-workspace": "node --test scripts/test-consultation-workspace.mjs",
     "test:agenda-account": "node scripts/test-agenda-account.mjs",
     "test:doctor-editors": "node scripts/test-doctor-editors.mjs"
   },

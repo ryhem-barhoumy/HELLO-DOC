@@ -24,13 +24,25 @@ function setup(){
   ],null as any);
   const component=runInInjectionContext(injector,()=>new BookingComponent());component.ngOnInit();
   function respond(path:string,value:any){const request=requests.filter(r=>r.path.endsWith(path)).at(-1)!;request.stream.next(value);request.stream.complete();}
-  function profile(services=[{name:'Consultation',price:'50 DT'},{name:'Contrôle',price:'35 DT'}]){
-    respond('/doctor-1',{fullName:'Médecin de test',specialty:'Médecine générale',services});
+  function profile(services=[{name:'Consultation',price:'50 DT'},{name:'Contrôle',price:'35 DT'}],videoConsultationEnabled=false){
+    respond('/doctor-1',{fullName:'Médecin de test',specialty:'Médecine générale',services,videoConsultationEnabled});
     respond('/booking-policy',{timeZone:'Africa/Tunis',minDate:'2030-01-01',maxDate:'2030-03-01',minimumNoticeMinutes:90});
     respond('/availability-calendar',[{date:day,status:'AVAILABLE',availableSlots:1},{date:'2030-01-16',status:'DAY_OFF',availableSlots:0}]);
   }
   return {component,requests,sends,submit,respond,profile,close:()=>injector.destroy()};
 }
+
+test('booking defaults to in-person and prevents video when the doctor has not enabled it',()=>{
+  const f=setup();try{f.profile();f.component.form.controls.serviceName.setValue('Consultation');f.respond('/slots',[slot]);f.component.chooseSlot(slot as any);
+    assert.equal(f.component.form.controls.consultationMode.value,'IN_PERSON');assert.equal(f.component.canSubmit,true);
+    f.component.form.controls.consultationMode.setValue('VIDEO');assert.equal(f.component.canSubmit,false);f.component.submit();assert.equal(f.sends.length,0);
+  }finally{f.close();}
+});
+test('enabled doctor accepts explicit video choice and sends it in the booking request',()=>{
+  const f=setup();try{f.profile(undefined,true);f.component.form.controls.serviceName.setValue('Consultation');f.respond('/slots',[slot]);f.component.chooseSlot(slot as any);f.component.form.controls.consultationMode.setValue('VIDEO');
+    assert.equal(f.component.canSubmit,true);f.component.submit();assert.equal(f.sends.length,1);assert.equal(f.sends[0].consultationMode,'VIDEO');
+  }finally{f.close();}
+});
 
 test('summary and submit depend on a real selected service and returned slot',()=>{
   const f=setup();try{f.profile();assert.equal(f.component.canSubmit,false);assert.equal(f.component.selectedService,undefined);

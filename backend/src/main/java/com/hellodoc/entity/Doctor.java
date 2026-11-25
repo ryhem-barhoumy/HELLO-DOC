@@ -19,6 +19,7 @@ public class Doctor {
     @Column(nullable=false, length=300) private String location;
     @Column(nullable=false, length=2000) private String description;
     @Column(name="duration_minutes", nullable=false) private int durationMinutes;
+    @Column(name="video_consultation_enabled") private Boolean videoConsultationEnabled=false;
     @Column(name="pause_minutes", nullable=false) private int pauseMinutes;
     @Lob @Column(name="services_json", nullable=false) private String servicesJson="[]";
     @Column(nullable=false) private boolean active=true;
@@ -26,6 +27,7 @@ public class Doctor {
     public Doctor(UserAccount user,DoctorApplication application,String serviceTitle,String city,String address,String location,String description,int durationMinutes,int pauseMinutes,String servicesJson){this.user=user;this.application=application;this.serviceTitle=serviceTitle;this.city=city;this.address=address;this.location=location;this.description=description;this.durationMinutes=durationMinutes;this.pauseMinutes=pauseMinutes;this.servicesJson=servicesJson;if(application!=null)application.attachDoctor(this);}
     public void addSpecialty(Specialty specialty){specialties.add(specialty);}
     public void setActive(boolean active){this.active=active;}
+    public void setVideoConsultationEnabled(boolean enabled){this.videoConsultationEnabled=enabled;}
     public void updateProfile(String serviceTitle,String city,String address,String location,String description,int durationMinutes,int pauseMinutes,String servicesJson){this.serviceTitle=serviceTitle;this.city=city;this.address=address;this.location=location;this.description=description;this.durationMinutes=durationMinutes;this.pauseMinutes=pauseMinutes;this.servicesJson=servicesJson;}
-    public UUID getId(){return id;} public UserAccount getUser(){return user;} public DoctorApplication getApplication(){return application;} public Set<Specialty> getSpecialties(){return specialties;} public String getServiceTitle(){return serviceTitle;} public String getCity(){return city;} public String getAddress(){return address;} public String getLocation(){return location;} public String getDescription(){return description;} public int getDurationMinutes(){return durationMinutes;} public int getPauseMinutes(){return pauseMinutes;} public String getServicesJson(){return servicesJson;} public boolean isActive(){return active;}
+    public UUID getId(){return id;} public UserAccount getUser(){return user;} public DoctorApplication getApplication(){return application;} public Set<Specialty> getSpecialties(){return specialties;} public String getServiceTitle(){return serviceTitle;} public String getCity(){return city;} public String getAddress(){return address;} public String getLocation(){return location;} public String getDescription(){return description;} public int getDurationMinutes(){return durationMinutes;} public int getPauseMinutes(){return pauseMinutes;} public String getServicesJson(){return servicesJson;} public boolean isActive(){return active;} public boolean isVideoConsultationEnabled(){return Boolean.TRUE.equals(videoConsultationEnabled);}
 }

@@ -12,7 +12,9 @@ public class ConsultationController {
     public ConsultationController(ConsultationService consultations){this.consultations=consultations;}
     @GetMapping("/appointments/{id}/consultation-note") public ConsultationNoteDto note(Authentication auth,@PathVariable UUID id){return consultations.note(auth.getName(),id);}
     @PutMapping("/appointments/{id}/consultation-note") public ConsultationNoteDto save(Authentication auth,@PathVariable UUID id,@Valid @RequestBody ConsultationNoteRequest request){return consultations.save(auth.getName(),id,request);}
+    @PostMapping("/appointments/{id}/consultation-note/finalize") public ConsultationNoteDto finalizeReport(Authentication auth,@PathVariable UUID id){return consultations.finalizeReport(auth.getName(),id);}
     @GetMapping("/appointments/{id}/consultation-note/history") public List<Map<String,Object>> history(Authentication auth,@PathVariable UUID id){return consultations.history(auth.getName(),id);}
     @GetMapping("/doctors/me/patients") public PagedResponse<DoctorPatientSummary> patients(Authentication auth,@RequestParam(required=false) String q,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return consultations.patients(auth.getName(),q,page,size);}
     @GetMapping("/doctors/me/patients/{id}") public DoctorPatientDossier dossier(Authentication auth,@PathVariable UUID id,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){return consultations.dossier(auth.getName(),id,page,size);}
+    @GetMapping("/appointments/{id}/clinical-context") public DoctorPatientDossier clinicalContext(Authentication auth,@PathVariable UUID id,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="10") int size){return consultations.clinicalContext(auth.getName(),id,page,size);}
 }

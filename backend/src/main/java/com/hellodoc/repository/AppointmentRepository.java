@@ -21,6 +21,8 @@ public interface AppointmentRepository extends JpaRepository<Appointment,UUID> {
  Page<com.hellodoc.dto.DoctorPatientSummary> findCompletedPatients(@Param("doctorId") UUID doctorId,@Param("q") String q,Pageable pageable);
  long countByDoctorIdAndPatientIdAndStatus(UUID doctorId,UUID patientId,AppointmentStatus status);
  long countByPatientId(UUID patientId);
+ @Query("select a from Appointment a join fetch a.doctor d join fetch d.user where a.patient.user.id=:patientUserId and a.status=com.hellodoc.entity.AppointmentStatus.COMPLETED order by a.startAt desc")
+ List<Appointment> findPatientCompletedByUserId(@Param("patientUserId") UUID patientUserId);
  long countByDoctorId(UUID doctorId);
  long countByStatus(AppointmentStatus status);
  long countByStartAtGreaterThanEqualAndStartAtLessThan(Instant from,Instant to);

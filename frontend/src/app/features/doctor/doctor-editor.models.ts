@@ -3,7 +3,7 @@ export interface DoctorProfile {
   id: string; firstName: string; lastName: string; fullName: string; email: string;
   phone: string; address: string; serviceTitle: string; specialty: string;
   location: string; description: string; services: DoctorService[];
-  durationMinutes: number; pauseMinutes: number; photoUrl: string | null;
+  durationMinutes: number; pauseMinutes: number; photoUrl: string | null; videoConsultationEnabled?:boolean;
 }
 export interface ScheduleWindow { period: number; startTime: string; endTime: string; }
 export interface ScheduleDay { isoWeekday: number; label: string; active: boolean; windows: ScheduleWindow[]; }

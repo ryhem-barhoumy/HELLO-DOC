@@ -10,9 +10,9 @@ import { ApiService } from '../../core/services/api.service';
 import { AppointmentService } from '../../core/services/domain.services';
 import { AuthService } from '../../core/services/auth.service';
 import { IconComponent } from '../../shared/icon.component';
-import { MedicalService, TimeSlot } from '../../core/models/api.models';
+import { ConsultationMode, MedicalService, TimeSlot } from '../../core/models/api.models';
 
-interface Doctor { photoUrl?:string|null; fullName: string; serviceTitle: string; specialty: string; location: string; services: MedicalService[]; }
+interface Doctor { photoUrl?:string|null; fullName: string; serviceTitle: string; specialty: string; location: string; services: MedicalService[]; videoConsultationEnabled?:boolean; }
 interface CalendarDay { date: string; status: string; availableSlots: number; }
 interface BookingPolicy { timeZone: string; minDate: string; maxDate: string; minimumNoticeMinutes: number; }
 @Component({selector:'app-booking',standalone:true,
@@ -32,7 +32,7 @@ export class BookingComponent implements OnInit {
   @HostListener('window:resize') resize(){this.isMobile=window.matchMedia('(max-width:760px)').matches;}
   menuOpen=false; calendarOpen=false; logoutBusy=false;
   month=''; dateOffset=0;
-  form=this.fb.nonNullable.group({serviceName:['',Validators.required],date:['',Validators.required],startAt:['',Validators.required],reason:['',Validators.maxLength(500)]});
+  form=this.fb.nonNullable.group({serviceName:['',Validators.required],consultationMode:['IN_PERSON' as ConsultationMode,Validators.required],date:['',Validators.required],startAt:['',Validators.required],reason:['',Validators.maxLength(500)]});
   constructor(){this.destroy.onDestroy(()=>{this.doctorRequest?.unsubscribe();this.calendarRequest?.unsubscribe();this.slotRequest?.unsubscribe();});}
   ngOnInit(){
     this.form.controls.serviceName.valueChanges.pipe(takeUntilDestroyed(this.destroy)).subscribe(()=>{this.error='';this.loadSlots();});
@@ -46,7 +46,7 @@ export class BookingComponent implements OnInit {
   get selectedService(){return this.services.find(s=>s.name===this.form.controls.serviceName.value);}
   get selectedSlot(){return this.slots.find(s=>s.startsAt===this.form.controls.startAt.value);}
   get selectedDate(){return this.form.controls.date.value;}
-  get canSubmit(){return !this.loadingDoctor&&!this.busy&&!this.success&&!this.slotsLoading&&!this.slotsError&&this.form.valid&&!!this.selectedService&&!!this.selectedSlot&&this.validDate(this.selectedDate);}
+  get canSubmit(){return !this.loadingDoctor&&!this.busy&&!this.success&&!this.slotsLoading&&!this.slotsError&&this.form.valid&&!!this.selectedService&&!!this.selectedSlot&&this.validDate(this.selectedDate)&&(this.form.controls.consultationMode.value!=='VIDEO'||!!this.doctor?.videoConsultationEnabled);}
   get patientName(){const u=this.auth.user();return u?`${u.firstName} ${u.lastName}`:'Mon compte';}
   get monthLabel(){return this.month?new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'}).format(new Date(`${this.month}-01T12:00:00`)):'';}
   get leadingDays(){return this.month?Array.from({length:(new Date(`${this.month}-01T12:00:00`).getDay()+6)%7}):[];}
@@ -62,7 +62,7 @@ export class BookingComponent implements OnInit {
     this.loadingDoctor=true;this.profileError='';this.slots=[];this.slotsLoading=false;this.calendarLoading=false;
     if(!preserve){this.doctor=null;this.policy=null;this.services=[];this.success='';this.form.reset({}, {emitEvent:false});}
     this.doctorRequest=forkJoin({doctor:this.api.get<Doctor>(`/doctors/${this.doctorId}`),policy:this.api.get<BookingPolicy>(`/doctors/${this.doctorId}/booking-policy`)}).subscribe({
-      next:({doctor,policy})=>{this.doctor=doctor;this.policy=policy;this.services=(doctor.services??[]).filter(s=>s.name?.trim()&&s.price?.trim());this.loadingDoctor=false;
+      next:({doctor,policy})=>{this.doctor=doctor;this.policy=policy;this.services=(doctor.services??[]).filter(s=>s.name?.trim()&&s.price?.trim());if(!doctor.videoConsultationEnabled)this.form.controls.consultationMode.setValue('IN_PERSON',{emitEvent:false});this.loadingDoctor=false;
         if(!this.selectedService)this.form.controls.serviceName.setValue('',{emitEvent:false});
         const requested=preserve?this.selectedDate:this.route.snapshot.queryParamMap.get('date')??'';
         const date=this.validDate(requested)?requested:'';this.form.controls.date.setValue(date,{emitEvent:false});
@@ -95,7 +95,7 @@ export class BookingComponent implements OnInit {
   }
   submit(){
     if(!this.canSubmit)return;this.busy=true;this.error='';const value=this.form.getRawValue();
-    this.appointments.create({doctorId:this.doctorId,serviceName:value.serviceName,startAt:value.startAt,reason:value.reason||undefined,expectedServicePrice:this.selectedService!.price})
+    this.appointments.create({doctorId:this.doctorId,serviceName:value.serviceName,startAt:value.startAt,reason:value.reason||undefined,expectedServicePrice:this.selectedService!.price,consultationMode:value.consultationMode})
       .pipe(takeUntilDestroyed(this.destroy)).subscribe({next:appointment=>{this.busy=false;this.success=appointment.status==='CONFIRMED'?'Rendez-vous confirmé par le médecin.':'Demande envoyée, en attente de confirmation du médecin';this.form.disable({emitEvent:false});if(typeof document!=='undefined')setTimeout(()=>document.querySelector<HTMLElement>('.booking-success')?.focus());},
         error:e=>{this.busy=false;this.error=e.status===409?`${e.message} Les disponibilités et le tarif vont être actualisés.`:e.message;if(e.status===409)this.loadDoctor(true);}});
   }

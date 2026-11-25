@@ -2,6 +2,7 @@ import { DoctorAccountComponent } from '../doctor/doctor-account.component';
 import { WeeklyAvailabilityComponent } from '../doctor/weekly-availability.component';
 import { AvatarComponent } from '../../shared/avatar.component';
 import { ProfilePhotoComponent } from '../../shared/profile-photo.component';
+import { TeleconsultationReminderComponent } from '../../shared/teleconsultation-reminder.component';
 import { WorkspaceFooterComponent } from '../../shared/workspace-footer.component';
 import { AdminInboxComponent } from '../admin/admin-inbox.component';
 import { DoctorPatientsComponent } from '../doctor/doctor-patients.component';
@@ -25,7 +26,7 @@ import { environment } from '../../../environments/environment';
 import { appointmentPermissions } from '../../core/models/appointment-permissions';
 
 interface Item { label: string; icon: string; path: string; }
-@Component({ selector: 'app-portal', standalone: true, imports: [DoctorAccountComponent,WeeklyAvailabilityComponent,CommonModule, FormsModule, ReactiveFormsModule, RouterLink, RouterLinkActive, AgendaComponent, DigitsOnlyDirective, IconComponent, AdminSpecialtiesComponent, ApprovalEmailComponent,DoctorPatientsComponent,AdminOperationsComponent,CabinetDatePipe,AdminInboxComponent,AvatarComponent,ProfilePhotoComponent,WorkspaceFooterComponent], templateUrl: './portal.component.html' })
+@Component({ selector: 'app-portal', standalone: true, imports: [DoctorAccountComponent,WeeklyAvailabilityComponent,CommonModule, FormsModule, ReactiveFormsModule, RouterLink, RouterLinkActive, AgendaComponent, DigitsOnlyDirective, IconComponent, AdminSpecialtiesComponent, ApprovalEmailComponent,DoctorPatientsComponent,AdminOperationsComponent,CabinetDatePipe,AdminInboxComponent,AvatarComponent,ProfilePhotoComponent,WorkspaceFooterComponent,TeleconsultationReminderComponent], templateUrl: './portal.component.html' })
 export class PortalComponent implements OnInit {
   private route = inject(ActivatedRoute); private api = inject(ApiService); private auth = inject(AuthService); private router = inject(Router); private fb = inject(FormBuilder); private destroyRef=inject(DestroyRef);
   role = this.route.snapshot.data['roles']?.[0] ?? 'PATIENT'; roleLabel = this.role === 'ADMIN' ? 'ADMINISTRATION' : this.role === 'DOCTOR' ? 'MÉDECIN' : 'PATIENT';
@@ -68,8 +69,8 @@ export class PortalComponent implements OnInit {
   toggleProfileDay(value:string,checked:boolean){this.profileDays=checked?[...new Set([...this.profileDays,value])]:this.profileDays.filter(d=>d!==value);}
   addProfileService(service:any={name:'',price:''}){const required=this.role==='DOCTOR'?[Validators.required]:[];this.profileServices.push(this.fb.group({name:[service.name??'', [...required,Validators.maxLength(160)]],price:[service.price??'', [...required,Validators.maxLength(40)]]}));}
   removeProfileService(i:number){this.profileServices.removeAt(i);}
-  patientItems: Item[] = [{label:'Vue d’ensemble',icon:'⌂',path:''},{label:'Trouver un médecin',icon:'⌕',path:'medecins'},{label:'Mes rendez-vous',icon:'▦',path:'rendez-vous'},{label:'Suivi & historique',icon:'◷',path:'historique'},{label:'Notifications',icon:'♧',path:'notifications'},{label:'Mon compte',icon:'○',path:'profil'}];
-  doctorItems: Item[] = [{label:'Vue d’ensemble',icon:'⌂',path:''},{label:'Rendez-vous',icon:'▦',path:'rendez-vous'},{label:'Agenda',icon:'▣',path:'calendrier'},{label:'Disponibilités',icon:'◷',path:'disponibilites'},{label:'Absences',icon:'⊘',path:'absences'},{label:'Patients',icon:'♧',path:'patients'},{label:'Avis patients',icon:'☆',path:'avis'},{label:'Notifications',icon:'♧',path:'notifications'},{label:'Mon compte',icon:'○',path:'profil'}];
+  patientItems: Item[] = [{label:'Vue d’ensemble',icon:'⌂',path:''},{label:'Trouver un médecin',icon:'⌕',path:'medecins'},{label:'Mes rendez-vous',icon:'▦',path:'rendez-vous'},{label:'Mon dossier médical',icon:'◷',path:'dossier-medical'},{label:'Suivi & historique',icon:'◷',path:'historique'},{label:'Notifications',icon:'♧',path:'notifications'},{label:'Mon compte',icon:'○',path:'profil'}];
+  doctorItems: Item[] = [{label:'Vue d’ensemble',icon:'⌂',path:''},{label:'Rendez-vous',icon:'▦',path:'rendez-vous'},{label:'Agenda',icon:'▣',path:'calendrier'},{label:'Disponibilités',icon:'◷',path:'disponibilites'},{label:'Absences',icon:'⊘',path:'absences'},{label:'Patients & dossiers médicaux',icon:'♧',path:'patients'},{label:'Avis patients',icon:'☆',path:'avis'},{label:'Notifications',icon:'♧',path:'notifications'},{label:'Mon compte',icon:'○',path:'profil'}];
   adminItems: Item[] = [{label:'Vue d’ensemble',icon:'⌂',path:''},{label:'Médecins',icon:'✚',path:'medecins'},{label:'Approbations',icon:'✓',path:'approbations'},{label:'Patients',icon:'♧',path:'patients'},{label:'Rendez-vous',icon:'▦',path:'rendez-vous'},{label:'Notifications',icon:'♧',path:'notifications'},{label:'Journal d’activité',icon:'◷',path:'activite'},{label:'Profil administrateur',icon:'○',path:'profil'},{label:'Sécurité',icon:'⚙',path:'parametres'},{label:'Spécialités',icon:'✚',path:'specialties'}];
   get items() { return this.role==='ADMIN' ? this.adminItems : this.role==='DOCTOR' ? this.doctorItems : this.patientItems; }
   get pageTitle() { if(this.role==='DOCTOR'&&this.area==='disponibilites')return 'Mes disponibilités';return this.area==='dashboard' ? 'Vue d’ensemble' : this.items.find(x=>x.path===this.area)?.label ?? 'Vue d’ensemble'; }
@@ -143,7 +144,7 @@ export class PortalComponent implements OnInit {
   setActive(record:any,active:boolean) { const collection=this.area==='patients'?'patients':'doctors';if(this.busy||!record.id)return;if(!active&&!window.confirm('Désactiver ce compte et fermer ses sessions actives ?'))return;this.busy=true;this.api.patch(`/admin/${collection}/${record.id}/status`,{status:active?'ACTIVE':'INACTIVE'}).subscribe({next:()=>{this.busy=false;this.notice=active?'Compte activé.':'Compte désactivé.';this.load();},error:e=>{this.busy=false;this.error=e.message;}}); }
   appointmentPermissions(record:any){return appointmentPermissions(this.role,record);}
   canMarkNoShow(record:any){return this.appointmentPermissions(record).canMarkNoShow;}
-  canMarkCompleted(record:any){return this.appointmentPermissions(record).canMarkCompleted;}
+  canMarkCompleted(record:any){return record.consultationMode!=='VIDEO'&&this.appointmentPermissions(record).canMarkCompleted;}
   appointmentAction(record:any,status:string) {
     if(!record.id||this.busy)return;
     const actions=this.appointmentPermissions(record);

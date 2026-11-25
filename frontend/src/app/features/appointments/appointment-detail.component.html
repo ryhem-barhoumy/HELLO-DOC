@@ -8,6 +8,7 @@
   <article class="surface appointment-summary">
    <div class="section-heading"><span [class]="'status-badge '+statusClass">{{label(appointment.status)}}</span><span class="muted">Réf. {{appointment.id.slice(0,8)}}</span></div>
    <h2>{{appointment.serviceName||'Consultation médicale'}}</h2>
+   <p class="consultation-mode-badge" [attr.data-mode]="consultationMode">{{consultationMode==='VIDEO'?'Téléconsultation vidéo':'Consultation au cabinet'}}</p>
    <div class="appointment-date"><span class="appointment-day">{{appointment.startsAt|cabinetDate:'day'}}</span><strong>{{appointment.startsAt|cabinetDate:'time'}} <span aria-hidden="true">–</span><span class="sr-only">jusqu’à</span> {{appointment.endsAt|cabinetDate:'time'}}</strong><span class="muted" *ngIf="duration">{{duration}} minutes · Heure du cabinet</span></div>
    <dl class="facts-grid"><div><dt>Médecin</dt><dd>{{appointment.doctorName||'—'}}</dd></div><div><dt>Patient</dt><dd>{{appointment.patientName||'—'}}</dd></div><div><dt>Lieu de consultation</dt><dd>{{appointment.location||'À préciser par le cabinet'}}</dd></div><div><dt>Tarif de la consultation</dt><dd>{{appointment.servicePrice||'—'}}</dd></div></dl>
    <section class="detail-section" *ngIf="appointment.reason"><h3>Motif communiqué</h3><p class="preserve-lines">{{appointment.reason}}</p></section>
@@ -19,10 +20,12 @@
     <button [disabled]="busy||loading" class="button button-primary" *ngIf="permissions.canConfirm" (click)="changeStatus('CONFIRMED')">Confirmer la demande</button>
     <button [disabled]="busy||loading" class="button button-danger" *ngIf="permissions.canReject" (click)="changeStatus('REJECTED')">Refuser la demande</button>
     <button [disabled]="busy||loading" class="button button-danger" *ngIf="canCancel" (click)="cancel()">Annuler le rendez-vous</button>
-    <button [disabled]="busy||loading" class="button button-primary" *ngIf="canMarkCompleted" (click)="changeStatus('COMPLETED')">Consultation terminée</button>
     <button [disabled]="busy||loading" class="button button-secondary" *ngIf="canMarkNoShow" (click)="changeStatus('NO_SHOW')">Signaler un patient absent</button>
     <a class="button button-secondary" *ngIf="permissions.canReschedule" [routerLink]="['/patient/rendez-vous',appointment.id,'reprogrammer']">Choisir un autre créneau</a>
-    <a class="button button-primary" *ngIf="role==='DOCTOR'&&appointment.status==='COMPLETED'" [routerLink]="['/medecin/rendez-vous',appointment.id,'consultation']">Ouvrir la fiche de consultation</a>
+    
+    <button class="button button-primary" *ngIf="canOpenVideo" [disabled]="busy" (click)="openTeleconsultation()">Commencer la téléconsultation</button>
+    <a class="button button-primary" *ngIf="role==='DOCTOR'&&appointment.status==='CONFIRMED'&&consultationMode==='IN_PERSON'" [routerLink]="['/medecin/rendez-vous',appointment.id,'teleconsultation']">Ouvrir l’espace de consultation</a>
+    <a class="button button-primary" *ngIf="role==='PATIENT'&&appointment.status==='CONFIRMED'&&consultationMode==='VIDEO'" [routerLink]="['/patient/rendez-vous',appointment.id,'teleconsultation']">Ouvrir la salle de téléconsultation</a>
     <a class="button button-secondary" *ngIf="role==='PATIENT'&&appointment.status==='COMPLETED'" [routerLink]="['/patient/avis',appointment.id]">Donner un avis</a>
    </div><p role="status" class="field-note" *ngIf="busy">Enregistrement de votre décision…</p>
   </article>

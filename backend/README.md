@@ -212,3 +212,11 @@ POST `/api/doctors/me/absences/preview` accepte le même objet que la création 
 GET/PUT `/api/admin/me` lisent/modifient les coordonnées de l’administrateur actif ; PUT demande `currentPassword`.
 
 `python verify-workflows.py` lance dix scénarios HTTP sur une base MySQL temporaire `hello_doc_qa_*`, puis arrête le serveur et supprime uniquement cette base. Il nécessite le jar construit, MySQL Laragon local et le port 8081 libre. Ce script n’est pas destiné à la production ; ses identifiants fixes n’existent que dans sa base jetable.
+
+## Téléconsultation et documents cliniques
+
+La téléconsultation est créée par le médecin à partir d’un rendez-vous confirmé. Le démarrage et la clôture de la séance sont des actions explicites du médecin ; une déconnexion ne change pas son état et la clôture ne modifie pas automatiquement le statut du rendez-vous. Les signaux WebRTC passent par `wss://<domaine-api>/api/teleconsultation-signal` en production et sont autorisés à chaque message selon le rendez-vous et la session authentifiés. Le chat est persisté par séance et relayé sur ce même canal.
+
+Les valeurs ICE sont configurables dans l’environnement du processus backend : `HELLODOC_WEBRTC_STUN_URLS` (liste séparée par des virgules), `HELLODOC_WEBRTC_TURN_URLS` et `HELLODOC_WEBRTC_TURN_SHARED_SECRET`. Le serveur génère des identifiants TURN temporaires signés avec le secret partagé compatible avec l’authentification REST de coturn. Garder ce secret uniquement dans le gestionnaire de secrets ou l’environnement privé du serveur ; ne pas l’inscrire dans le dépôt, le frontend ou `backend/.env.example`. Un serveur TURN joignable en UDP/TCP/TLS doit être déployé et configuré pour les réseaux qui bloquent les connexions directes. Le STUN par défaut ne garantit pas une connexion dans tous les réseaux. Le frontend et l’API doivent utiliser HTTPS/WSS en production.
+
+Le dossier patient est obtenu via `GET /api/patients/me/consultations` et est résolu depuis l’utilisateur authentifié ; il ne prend aucun identifiant patient en paramètre. Son DTO exclut la note privée et l’historique interne des révisions. Les corrections d’ordonnance créent une nouvelle version reliée à la précédente ; elles ne modifient pas le document initial.
