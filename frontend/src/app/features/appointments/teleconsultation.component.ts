@@ -6,8 +6,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, EMPTY, exhaustMap, firstValueFrom, interval, of, startWith, switchMap } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { environment } from '../../../environments/environment';
-import { WorkspaceHeaderComponent } from '../../shared/workspace-header.component';
-import { WorkspaceFooterComponent } from '../../shared/workspace-footer.component';
 import { CabinetDatePipe } from '../../shared/cabinet-date.pipe';
 import { ConsultationNoteComponent } from '../doctor/consultation-note.component';
 
@@ -17,11 +15,11 @@ interface MeetLinkDto { appointmentId: string; url: string|null; externalCallEnd
 
 @Component({
   selector: 'app-teleconsultation', standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, WorkspaceHeaderComponent, WorkspaceFooterComponent, CabinetDatePipe, ConsultationNoteComponent],
+  imports: [CommonModule, FormsModule, RouterLink, CabinetDatePipe, ConsultationNoteComponent],
   styleUrl: './teleconsultation.component.css',
   template: `
-<app-workspace-header/>
-<main class="product-page clinical-page">
+
+<section class="product-page clinical-page" [attr.role]="role==='PATIENT' ? null : 'main'">
   <a class="text-link" [routerLink]="role==='DOCTOR'?['/medecin/rendez-vous',appointmentId]:['/patient/rendez-vous',appointmentId]">← Retour au rendez-vous</a>
   <div class="page-intro"><span class="eyebrow">ESPACE DE CONSULTATION</span><h1>{{appointment?.consultationMode==='VIDEO'?'Téléconsultation':'Consultation médicale'}}</h1><p class="muted">La page de travail reste accessible indépendamment de l’ouverture de la salle vidéo.</p></div>
   <div class="loading-panel" role="status" *ngIf="loading">Chargement du rendez-vous…</div>
@@ -83,7 +81,7 @@ interface MeetLinkDto { appointmentId: string; url: string|null; externalCallEnd
       <small class="field-note" *ngIf="visit.status==='CONFIRMED'&&!canClose&&hasUnsavedClinicalChanges()">Enregistrez les modifications cliniques ou d’ordonnance avant de clôturer le rendez-vous.</small><small class="field-note" *ngIf="visit.status==='CONFIRMED'&&!canClose&&!hasUnsavedClinicalChanges()&&visit.consultationMode==='VIDEO'">Terminez l’appel WebRTC ou confirmez explicitement la fin de Google Meet.</small>
     </section>
   </ng-container>
-</main><app-workspace-footer/>`
+</section>`
 })
 export class TeleconsultationComponent implements OnInit, OnDestroy {
   private route=inject(ActivatedRoute); private api=inject(ApiService); private destroy=inject(DestroyRef);

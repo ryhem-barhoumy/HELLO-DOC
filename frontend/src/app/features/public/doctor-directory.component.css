@@ -1,0 +1,43 @@
+:host { display: block; }
+.directory { --directory-text: #48635a; min-width: 0; }
+.directory-public { width: min(1160px, calc(100% - 40px)); margin: 36px auto 64px; }
+.directory-heading { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.directory-heading h1 { margin: 0; font-size: clamp(1.65rem, 4vw, 2.35rem); line-height: 1.15; letter-spacing: -0.035em; }
+.directory-heading p { margin: 8px 0 0; color: var(--directory-text); font-size: 15px; line-height: 1.55; }
+.directory-mark { width: 52px; height: 52px; border-radius: 15px; display: grid; place-items: center; background: var(--mint); color: var(--green-dark); flex: none; }
+.directory-mark app-icon { width: 24px; height: 24px; }
+.directory-filters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)) auto; gap: 12px; align-items: end; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.directory-filters label { display: grid; gap: 5px; min-width: 0; color: var(--directory-text); font-size: 13px; font-weight: 650; }
+.directory-filters input { width: 100%; min-width: 0; min-height: 42px; padding: 8px 10px; border: 1px solid #bed0c8; border-radius: 8px; background: white; color: var(--ink); font: inherit; font-size: 14px; }
+.filter-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.filter-actions .button { min-height: 42px; }
+.reset-filters { min-height: 42px; padding-inline: 6px; border: 0; background: transparent; color: var(--green-dark); font-size: 13px; font-weight: 650; text-decoration: underline; }
+.directory-count { color: var(--directory-text); font-size: 14px; margin: 17px 0 10px; }
+.directory-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+.directory-card, .directory-skeleton { min-width: 0; padding: 17px; background: white; border: 1px solid var(--line); border-radius: 14px; }
+.directory-card { transition: border-color 160ms ease, box-shadow 160ms ease; }
+.directory-card:focus-within, .directory-card:hover { border-color: #91beb1; box-shadow: 0 6px 20px #174b320c; }
+.directory-card header { display: flex; min-width: 0; align-items: center; gap: 12px; }
+.directory-card h2 { font-size: 1.05rem; overflow-wrap: anywhere; margin: 0 0 4px; }
+.directory-card header p { color: var(--green-dark); font-size: 14px; font-weight: 650; margin: 0; }
+.doctor-location { color: var(--directory-text); margin: 11px 0 8px; font-size: 14px; }
+.directory-modes, .directory-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.directory-modes span { background: #edf7f2; color: #2b5f51; font-size: 12px; border-radius: 6px; padding: 4px 8px; }
+.directory-availability { margin: 12px 0; display: flex; gap: 9px; align-items: center; color: var(--green-dark); }
+.directory-availability p { margin: 0; display: grid; gap: 3px; }
+.directory-availability small { color: var(--directory-text); font-size: 12px; }
+.directory-availability strong { font-size: 14px; }
+.directory-actions { padding-top: 11px; border-top: 1px solid var(--line); }
+.directory-actions .button { min-height: 42px; }
+.directory .notice, .directory .empty-panel, .directory-filters + .sr-only + .directory-grid { margin-top: 14px; }
+.directory .empty-panel { min-height: 205px; }
+.directory-skeleton { min-height: 205px; display: grid; align-content: center; justify-items: start; gap: 12px; }
+.directory-skeleton span { height: 13px; width: 75%; background: #e9f3ee; border-radius: 8px; animation: directory-pulse 1.15s ease-in-out infinite alternate; }
+.directory-skeleton span:first-child { height: 44px; width: 44px; border-radius: 50%; }
+.directory-skeleton span:last-child { width: 45%; }
+.directory-pagination { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 18px; font-size: 14px; }
+@keyframes directory-pulse { to { opacity: .48; } }
+@media (max-width: 1070px) { .directory-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } .filter-actions { grid-column: 1 / -1; } }
+@media (max-width: 650px) { .directory-grid { grid-template-columns: minmax(0, 1fr); } .directory-public { width: calc(100% - 28px); margin-top: 24px; } }
+@media (max-width: 385px) { .directory-filters { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .directory-card { transition: none; } .directory-skeleton span { animation: none; } }

@@ -1,6 +1,7 @@
 package com.hellodoc.controller;
 
 import com.hellodoc.dto.*;
+import com.hellodoc.entity.AppointmentStatus;
 import com.hellodoc.service.AppointmentService;
 import com.hellodoc.service.ReviewService;
 import jakarta.validation.Valid;
@@ -22,7 +23,17 @@ public class AppointmentController {
     @PostMapping @PreAuthorize("hasAnyRole('USER','PATIENT')") @org.springframework.web.bind.annotation.ResponseStatus(org.springframework.http.HttpStatus.CREATED)
     public AppointmentDto book(Authentication auth,@Valid @RequestBody AppointmentCreateRequest request){return appointments.book(auth.getName(),request);}
     @GetMapping("/mine") @PreAuthorize("hasAnyRole('USER','PATIENT')")
-    public PagedResponse<AppointmentDto> mine(Authentication auth,@RequestParam(defaultValue="false") boolean history,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="30") int size){return appointments.patientAppointments(auth.getName(),history,page,size);}
+    public PagedResponse<AppointmentDto> mine(Authentication auth,
+            @RequestParam(defaultValue="false") boolean history,
+            @RequestParam(defaultValue="0") int page,
+            @RequestParam(defaultValue="30") int size,
+            @RequestParam(required=false) AppointmentStatus status,
+            @RequestParam(required=false) String q) {
+        if (status == null && (q == null || q.isBlank())) {
+            return appointments.patientAppointments(auth.getName(), history, page, size);
+        }
+        return appointments.patientAppointments(auth.getName(), history, page, size, status, q);
+    }
     @GetMapping("/{id}") @PreAuthorize("hasAnyRole('USER','PATIENT','DOCTOR')")
     public AppointmentDto get(Authentication auth,@PathVariable UUID id){return appointments.get(auth.getName(),id);}
     @PostMapping("/{id}/cancellation") @PreAuthorize("hasAnyRole('USER','PATIENT','DOCTOR')")

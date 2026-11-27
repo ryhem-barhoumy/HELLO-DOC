@@ -13,4 +13,6 @@ public record DoctorRegistrationRequest(
     @AssertTrue boolean consent,
     @NotBlank @Size(max=120) String specialty,
     @NotBlank @Size(max=100) String licenseNumber,
-    @NotBlank @Size(max=120) String city) { }
+    @NotBlank @Size(max=120) String city) {
+    @Override public String toString() { return "DoctorRegistrationRequest[redacted]"; }
+}

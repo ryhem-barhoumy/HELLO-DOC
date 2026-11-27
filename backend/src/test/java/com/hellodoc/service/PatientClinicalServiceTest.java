@@ -13,11 +13,14 @@ class PatientClinicalServiceTest {
  @Test void patientResponseMapsSharedFieldsWithoutPrivateNote(){
   UserRepository users=mock(UserRepository.class);AppointmentRepository appointments=mock(AppointmentRepository.class);ConsultationNoteRepository notes=mock(ConsultationNoteRepository.class);PrescriptionRepository rx=mock(PrescriptionRepository.class);
   UserAccount patientUser=new UserAccount("Pat","Ient","patient@test.invalid","hash",UserRole.USER,"ACTIVE");UserAccount doctorUser=new UserAccount("Doc","Tor","doctor@test.invalid","hash",UserRole.DOCTOR,"ACTIVE");Doctor doctor=mock(Doctor.class);when(doctor.getUser()).thenReturn(doctorUser);Patient patient=new Patient(patientUser);
-  Appointment visit=new Appointment(doctor,patient,"Consultation","50",Instant.now().minusSeconds(7200),Instant.now().minusSeconds(3600),null);
+  when(doctor.getSpecialties()).thenReturn(Set.of(new Specialty("Cardiologie"),new Specialty("Allergologie")));
+  Appointment visit=new Appointment(doctor,patient,"Consultation","50",Instant.now().minusSeconds(7200),Instant.now().minusSeconds(3600),null,ConsultationMode.VIDEO);
   ConsultationNote note=new ConsultationNote(visit);note.update("Résumé partagé","Observations","Traitement",LocalDate.now().plusDays(2),"dans deux semaines","Revoir si les symptômes persistent","NOTE PRIVÉE CONFIDENTIELLE");
   note.finalizeReport();when(users.findByEmailIgnoreCase("patient@test.invalid")).thenReturn(Optional.of(patientUser));when(appointments.findPatientCompletedByUserId(patientUser.getId())).thenReturn(List.of(visit));when(notes.findByAppointmentIdIn(anyList())).thenReturn(List.of(note));when(rx.findByAppointmentIdInOrderByPrescribedAtDesc(anyList())).thenReturn(List.of());
   var rows=new PatientClinicalService(users,appointments,notes,rx).myConsultations("patient@test.invalid");
   assertEquals(1,rows.size());assertEquals("Résumé partagé",rows.get(0).note().resume());assertEquals("dans deux semaines",rows.get(0).note().recommendedDelay());assertEquals("Revoir si les symptômes persistent",rows.get(0).note().followUpInstructions());
+  assertEquals("Allergologie, Cardiologie",rows.get(0).specialty());
+  assertEquals(ConsultationMode.VIDEO,rows.get(0).consultationMode());
   assertFalse(Arrays.stream(rows.get(0).note().getClass().getRecordComponents()).anyMatch(c->c.getName().equalsIgnoreCase("privateNote")));
   assertFalse(rows.get(0).note().toString().contains("CONFIDENTIEL"));verify(appointments).findPatientCompletedByUserId(patientUser.getId());
  }

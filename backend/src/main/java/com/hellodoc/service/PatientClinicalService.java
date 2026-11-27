@@ -27,8 +27,12 @@ public class PatientClinicalService {
         return visits.stream().map(a->{
             ConsultationNote n=noteMap.get(a.getId());
             PatientConsultationDto.SharedNote shared=n==null?null:new PatientConsultationDto.SharedNote(n.getResume(),n.getObservation(),n.getTreatment(),n.getNextCheck(),n.getUpdatedAt(),n.getRecommendedDelay(),n.getFollowUpInstructions());
-            UserAccount doctor=a.getDoctor().getUser();
-            return new PatientConsultationDto(a.getId(),a.getDoctor().getId(),a.getStartAt(),a.getStatus().name(),a.getServiceName(),doctor.getFirstName()+" "+doctor.getLastName(),shared,rxMap.getOrDefault(a.getId(),List.of()));
+            Doctor doctor=a.getDoctor();
+            UserAccount doctorAccount=doctor.getUser();
+            String specialty=doctor.getSpecialties().stream().map(Specialty::getName).sorted().collect(Collectors.joining(", "));
+            return new PatientConsultationDto(a.getId(),doctor.getId(),a.getStartAt(),a.getStatus().name(),a.getServiceName(),
+                doctorAccount.getFirstName()+" "+doctorAccount.getLastName(),shared,rxMap.getOrDefault(a.getId(),List.of()),
+                specialty,a.getConsultationMode());
         }).toList();
     }
 }

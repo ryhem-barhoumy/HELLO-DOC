@@ -150,7 +150,7 @@ test('patient Meet link synchronizes through the existing API without overlappin
   assert.match(meetPolling,/e\.status===404\?of\(/);
   assert.doesNotMatch(meetPolling,/this\.load\(\)|join\(|messages|RTCPeerConnection/);
   assert.match(workspace,/this\.meetPoll\?\.unsubscribe\(\)/);
-  assert.match(workspace,/meetPoll\?\.unsubscribe\(\);\}\n  load\(/);
+  assert.match(workspace,/meetPoll\?\.unsubscribe\(\);}\r?\n\s+load\(/);
   assert.match(workspace,/next:m=>\{this\.meet=m;this\.meetLinkDraft=m\.url\?\?''/);
 });
 test('teleconsultation reminders are local, deduplicated, and link to the existing role-specific room',()=>{

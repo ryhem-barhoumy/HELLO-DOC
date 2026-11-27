@@ -1,13 +1,11 @@
-import { WorkspaceFooterComponent } from '../../shared/workspace-footer.component';
 import { Component, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../core/services/api.service';
-import { WorkspaceHeaderComponent } from '../../shared/workspace-header.component';
 import { CabinetDatePipe } from '../../shared/cabinet-date.pipe';
-@Component({selector:'app-patient-dossier',standalone:true,imports:[WorkspaceFooterComponent,CommonModule,RouterLink,WorkspaceHeaderComponent,CabinetDatePipe],template:`
-<app-workspace-header/><main class="product-page clinical-page">
+@Component({selector:'app-patient-dossier',standalone:true,imports:[CommonModule,RouterLink,CabinetDatePipe],template:`
+<section class="product-page clinical-page">
  <a class="text-link" routerLink="/medecin/patients">← Retour à mes patients</a>
  <div class="page-intro"><span class="eyebrow">CONTINUITÉ DES SOINS</span><h1>Dossier de suivi</h1><p class="muted">Retrouvez vos consultations terminées avec ce patient et les fiches que vous avez enregistrées.</p></div>
  <div class="loading-panel" role="status" *ngIf="loading">Chargement du dossier…</div><div class="notice notice-error" role="alert" *ngIf="error">{{error}} <button type="button" class="text-button" (click)="load(page)">Réessayer</button></div>
@@ -16,7 +14,7 @@ import { CabinetDatePipe } from '../../shared/cabinet-date.pipe';
  <div *ngIf="item.consultationNote as note;else missing" class="medical-note"><h4>Résumé</h4><p>{{note.resume}}</p><details><summary>Afficher le compte rendu complet</summary><ng-container *ngIf="note.observation"><h4>Observations</h4><p>{{note.observation}}</p></ng-container><ng-container *ngIf="note.treatment"><h4>Traitement et recommandations</h4><p>{{note.treatment}}</p></ng-container><p *ngIf="note.nextCheck"><strong>Contrôle conseillé :</strong> {{note.nextCheck|cabinetDate}}</p><p *ngIf="note.recommendedDelay"><strong>Délai recommandé :</strong> {{note.recommendedDelay}}</p><p class="preserve-lines" *ngIf="note.followUpInstructions">{{note.followUpInstructions}}</p><div class="private-field" *ngIf="note.privateNote"><h4>Votre note privée</h4><p>{{note.privateNote}}</p></div><p class="field-note">Mise à jour le {{note.updatedAt|cabinetDate:'datetime'}}</p></details></div><ng-template #missing><p class="empty-copy">Aucune fiche enregistrée pour cette consultation.</p></ng-template>
  <section class="medical-note" *ngIf="item.prescriptions?.length"><h4>Ordonnances</h4><article *ngFor="let rx of item.prescriptions"><p><strong>{{rx.prescribedAt|cabinetDate:'date'}}</strong><span *ngIf="rx.recommendations"> · {{rx.recommendations}}</span></p><ul><li *ngFor="let line of rx.items"><strong>{{line.medication}}</strong> — {{line.instructions}}</li></ul></article></section></article>
  <nav class="pagination" aria-label="Pages de consultations" *ngIf="patient.totalPages>1"><button [disabled]="page===0||loading" (click)="load(page-1)">Précédent</button><span>Page {{page+1}} sur {{patient.totalPages}}</span><button [disabled]="page+1>=patient.totalPages||loading" (click)="load(page+1)">Suivant</button></nav></section></ng-container>
-</main><app-workspace-footer/>`})
+</section>`})
 export class PatientDossierComponent {
  private route=inject(ActivatedRoute);private api=inject(ApiService);private destroy=inject(DestroyRef);private subscription?:{unsubscribe():void};patientId=this.route.snapshot.paramMap.get('patientId')??'';patient:any=null;page=0;error='';loading=true;
  constructor(){this.load(0);}

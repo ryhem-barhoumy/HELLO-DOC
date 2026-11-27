@@ -29,7 +29,7 @@
           <label>Nom <input formControlName="lastName" autocomplete="family-name" maxlength="100" [attr.aria-invalid]="!!message('lastName')" aria-describedby="lastName-error"><small id="lastName-error" class="auth-field-error" *ngIf="message('lastName')">{{message('lastName')}}</small></label>
           <label class="full">Adresse e-mail <input type="email" formControlName="email" autocomplete="email" maxlength="254" placeholder="nom@exemple.com" [attr.aria-invalid]="!!message('email')" aria-describedby="email-error"><small id="email-error" class="auth-field-error" *ngIf="message('email')">{{message('email')}}</small></label>
           <label class="full">Numéro de téléphone <input type="tel" appDigitsOnly formControlName="phone" autocomplete="tel" maxlength="15" placeholder="Ex. 22123456" [attr.aria-invalid]="!!message('phone')" aria-describedby="phone-help phone-error"><small id="phone-help" class="field-note">8 à 15 chiffres. Pour un numéro international, incluez l’indicatif sans le signe +.</small><small id="phone-error" class="auth-field-error" *ngIf="message('phone')">{{message('phone')}}</small></label>
-          <label class="full">Adresse <input formControlName="address" autocomplete="street-address" maxlength="300" [attr.aria-invalid]="!!message('address')"><small class="auth-field-error" *ngIf="message('address')">{{message('address')}}</small></label>
+          <label class="full">{{mode === 'doctor' ? 'Adresse du cabinet' : 'Adresse'}} <input formControlName="address" autocomplete="street-address" maxlength="300" [attr.aria-invalid]="!!message('address')"><small class="auth-field-error" *ngIf="message('address')">{{message('address')}}</small></label>
         </div></fieldset>
         <fieldset *ngIf="mode === 'doctor'"><legend>Votre identité professionnelle</legend><div class="form-grid">
           <label>Spécialité <select formControlName="specialty" [attr.aria-invalid]="!!message('specialty')"><option value="">Choisir une spécialité</option><option *ngFor="let s of specialties" [value]="s">{{s}}</option></select><small class="auth-field-error" *ngIf="message('specialty')">{{message('specialty')}}</small></label>
@@ -51,7 +51,7 @@
           <small class="full auth-field-error" *ngIf="message('consent')">{{message('consent')}}</small>
         </div></fieldset>
         <p class="form-error" role="alert" *ngIf="error">{{error}}</p>
-        <button class="button button-primary submit-button" [disabled]="busy">{{busy ? 'Envoi en cours…' : mode === 'doctor' ? 'Envoyer ma demande' : 'Créer mon compte'}} <span>→</span></button>
+        <button class="button button-primary submit-button" type="submit" [disabled]="busy">{{busy ? 'Envoi en cours…' : mode === 'doctor' ? 'Envoyer ma demande' : 'Créer mon compte'}} <span>→</span></button>
       </form>
       <p class="auth-switch">Vous avez déjà un compte ? <a routerLink="/connexion">Se connecter</a></p>
     </div>

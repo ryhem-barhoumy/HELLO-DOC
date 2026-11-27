@@ -73,8 +73,8 @@ class DoctorProfileServiceTest {
  }
 
  @Test void searchUsesFiltersAndPaginationInRepository(){
-  when(doctors.search(eq("Amel"),eq("Tunis"),eq("odontologie"),any(Pageable.class))).thenReturn(Page.empty(PageRequest.of(0,10)));
-  assertTrue(service.search("Amel","Odontologie","Tunis",null,0,10).isEmpty());
-  verify(doctors).search(eq("Amel"),eq("Tunis"),eq("odontologie"),any(Pageable.class));
+  when(doctors.search(eq("Amel"),eq("Tunis"),eq("odontologie"),eq(false),any(Pageable.class))).thenReturn(Page.empty(PageRequest.of(0,10)));
+  assertTrue(service.search("Amel","Odontologie","Tunis",null,0,10,false).isEmpty());
+  verify(doctors).search(eq("Amel"),eq("Tunis"),eq("odontologie"),eq(false),any(Pageable.class));
  }
 }

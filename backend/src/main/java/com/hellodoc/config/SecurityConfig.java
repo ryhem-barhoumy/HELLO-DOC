@@ -41,6 +41,7 @@ public class SecurityConfig {
     .requestMatchers(new org.springframework.security.web.util.matcher.RegexRequestMatcher("/api/doctors/[0-9a-fA-F-]{36}(?:/(?:slots|availability-calendar|booking-policy|photo))?(?:\\?.*)?","GET")).permitAll()
     .requestMatchers(HttpMethod.GET,"/api/auth/csrf","/api/auth/me").permitAll()
     .requestMatchers(HttpMethod.POST,"/api/auth/login","/api/patients/registrations","/api/doctors/registrations").permitAll()
+    .requestMatchers(HttpMethod.POST,"/api/auth/recovery/request","/api/auth/recovery/verify").permitAll()
     .requestMatchers("/api/admin/**").hasRole("ADMIN")
     .requestMatchers("/api/**").authenticated()
     .anyRequest().permitAll())

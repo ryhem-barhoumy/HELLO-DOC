@@ -2,8 +2,17 @@ package com.hellodoc.controller;
 import com.hellodoc.dto.*; import com.hellodoc.service.DoctorProfileService; import com.hellodoc.service.AppointmentService; import com.hellodoc.service.ReviewService; import jakarta.validation.Valid; import org.springframework.data.domain.Page; import org.springframework.format.annotation.DateTimeFormat; import org.springframework.security.access.prepost.PreAuthorize; import org.springframework.security.core.Authentication; import org.springframework.web.bind.annotation.*; import java.time.LocalDate; import java.time.Instant; import java.util.UUID;
 @RestController @RequestMapping("/api/doctors") public class DoctorController {
  private final DoctorProfileService doctors; private final AppointmentService appointments; private final ReviewService reviews; public DoctorController(DoctorProfileService doctors,AppointmentService appointments,ReviewService reviews){this.doctors=doctors;this.appointments=appointments;this.reviews=reviews;}
- @GetMapping @PreAuthorize("permitAll()") public Page<DoctorSearchDto> search(@RequestParam(required=false) String q,@RequestParam(required=false) String specialty,@RequestParam(required=false) String city,@RequestParam(required=false) String availableOn,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size){LocalDate date=availableOn==null||availableOn.isBlank()?null:LocalDate.parse(availableOn);return doctors.search(q,specialty,city,date,page,size);}
- @GetMapping("/{id}") @PreAuthorize("permitAll()") public DoctorPublicDto publicProfile(@PathVariable UUID id){return doctors.publicProfile(id);}
+ @GetMapping @PreAuthorize("permitAll()") public Page<DoctorSearchDto> search(@RequestParam(required=false) String q,@RequestParam(required=false) String specialty,@RequestParam(required=false) String city,@RequestParam(required=false) String availableOn,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="20") int size,Authentication auth){
+  LocalDate date=availableOn==null||availableOn.isBlank()?null:LocalDate.parse(availableOn);
+  boolean signedIn=signedIn(auth);
+  Page<DoctorSearchDto> results=doctors.search(q,specialty,city,date,page,size,signedIn);
+  return signedIn?results:results.map(DoctorSearchDto::withoutPrivateContact);
+ }
+ @GetMapping("/{id}") @PreAuthorize("permitAll()") public DoctorPublicDto publicProfile(@PathVariable UUID id, Authentication auth){
+  DoctorPublicDto profile=doctors.publicProfile(id);
+  return signedIn(auth)?profile:profile.withoutPrivateContact();
+ }
+ private boolean signedIn(Authentication auth){return auth!=null&&auth.isAuthenticated()&&!(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken);}
  @GetMapping("/{id}/booking-policy") @PreAuthorize("permitAll()") public java.util.Map<String,Object> bookingPolicy(@PathVariable UUID id){return doctors.bookingPolicy(id);}
  @GetMapping("/{id}/slots") @PreAuthorize("permitAll()") public java.util.List<TimeSlotDto> slots(@PathVariable UUID id,@RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate date){return appointments.freeSlots(id,date);}
  @GetMapping("/{id}/availability-calendar") @PreAuthorize("permitAll()") public java.util.List<AvailabilityCalendarDayDto> availabilityCalendar(@PathVariable UUID id,@RequestParam String month){try{return doctors.calendar(id,java.time.YearMonth.parse(month));}catch(java.time.format.DateTimeParseException ex){throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,"Le mois doit respecter le format YYYY-MM.");}}

@@ -1,0 +1,76 @@
+<div class="page-heading">
+  <div><h1>Mon dossier médical</h1><p>Retrouvez les comptes rendus et les ordonnances partagés après vos consultations.</p></div>
+</div>
+
+@if (loading) {
+  <div role="status" class="dossier-loading"><span>Chargement de votre dossier…</span><div aria-hidden="true"></div><div aria-hidden="true"></div></div>
+} @else if (error) {
+  <div class="notice notice-error" role="alert"><span>{{ error }}</span><button type="button" class="text-button" (click)="load()">Réessayer</button></div>
+} @else if (!visits.length) {
+  <section class="empty-panel dossier-empty">
+    <span class="dossier-symbol"><app-icon name="dossier-medical"/></span>
+    <h2>Aucune consultation terminée</h2>
+    <p>Les documents partagés par votre médecin apparaîtront ici après votre consultation.</p>
+    <a class="button button-secondary" routerLink="/patient/rendez-vous">Voir mes rendez-vous</a>
+  </section>
+} @else {
+  <section class="dossier-history" aria-label="Documents par consultation">
+    @for (visit of visits; track visit.appointmentId) {
+      <details class="dossier-visit">
+        <summary>
+          <span class="dossier-symbol"><app-icon name="dossier-medical"/></span>
+          <span class="visit-identity">
+            <time [attr.datetime]="visit.startsAt">{{ visit.startsAt | cabinetDate:'datetime' }}</time>
+            <strong>{{ visit.serviceName }}</strong>
+            <span>Dr {{ visit.doctorName }}@if (visit.specialty) { · {{ visit.specialty }} }</span>
+          </span>
+          <span class="visit-documents">
+            <span class="visit-mode"><app-icon [name]="visit.consultationMode === 'VIDEO' ? 'video' : 'cabinet'"/>{{ visit.consultationMode === 'VIDEO' ? 'Téléconsultation' : 'Au cabinet' }}</span>
+            @if (visit.note) { <span class="status-badge positive">Compte rendu</span> }
+            @if (visit.prescriptions.length) { <span class="status-badge neutral">{{ visit.prescriptions.length === 1 ? '1 ordonnance' : visit.prescriptions.length + ' ordonnances' }}</span> }
+            @if (!visit.note && !visit.prescriptions.length) { <span class="status-badge neutral">Aucun document partagé</span> }
+          </span>
+          <span class="visit-chevron" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="visit-content">
+          @if (visit.note; as note) {
+            <section class="medical-note">
+              <h2>Compte rendu partagé</h2>
+              <h3>Résumé</h3><p class="preserve-lines">{{ note.resume }}</p>
+              @if (note.observation) { <h3>Observations</h3><p class="preserve-lines">{{ note.observation }}</p> }
+              @if (note.treatment) { <h3>Traitement et recommandations</h3><p class="preserve-lines">{{ note.treatment }}</p> }
+              @if (note.nextCheck || note.recommendedDelay || note.followUpInstructions) {
+                <section class="follow-up">
+                  <h3>Contrôle recommandé</h3>
+                  @if (note.nextCheck) { <p>Date conseillée le {{ note.nextCheck | cabinetDate }}</p> }
+                  @if (note.recommendedDelay) { <p>Délai recommandé de {{ note.recommendedDelay }}</p> }
+                  @if (note.followUpInstructions) { <p class="preserve-lines">{{ note.followUpInstructions }}</p> }
+                  <a class="button button-secondary" [routerLink]="['/patient/reserver', visit.doctorId]">Prendre un rendez-vous de suivi</a>
+                </section>
+              }
+              <p class="field-note">Compte rendu mis à jour le {{ note.updatedAt | cabinetDate:'datetime' }}</p>
+            </section>
+          } @else {
+            <p class="empty-copy">Aucun compte rendu partagé pour cette consultation.</p>
+          }
+
+          @if (visit.prescriptions.length) {
+            <section class="medical-note">
+              <h2>Ordonnances</h2>
+              @for (rx of visit.prescriptions; track rx.id) {
+                <article class="prescription-card">
+                  <h3>Ordonnance du {{ rx.prescribedAt | cabinetDate:'date' }} · Dr {{ rx.doctorName }}</h3>
+                  @if (rx.recommendations) { <p class="preserve-lines">{{ rx.recommendations }}</p> }
+                  <ul>@for (item of rx.items; track $index) { <li><strong>{{ item.medication }}</strong> · {{ item.instructions }}</li> }</ul>
+                </article>
+              }
+            </section>
+          } @else {
+            <p class="empty-copy">Aucune ordonnance disponible pour cette consultation.</p>
+          }
+          <a class="text-link" [routerLink]="['/patient/rendez-vous', visit.appointmentId]">Voir le rendez-vous <span aria-hidden="true">→</span></a>
+        </div>
+      </details>
+    }
+  </section>
+}

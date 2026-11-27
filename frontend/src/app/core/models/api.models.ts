@@ -4,7 +4,10 @@ export type AppointmentStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'REJECTE
 export type ConsultationMode = 'IN_PERSON' | 'VIDEO';
 export interface SessionUser { id: string; firstName: string; lastName: string; email: string; role: Role; status: AccountStatus; photoUrl?:string|null; }
 export interface Page<T> { content: T[]; page: number; size: number; totalElements: number; totalPages: number; }
-export interface DoctorSummary { id: string; firstName: string; lastName: string; fullName?: string; serviceTitle?: string; specialty: string; city: string; location?: string; rating?: number; status: AccountStatus; videoConsultationEnabled?:boolean; }
+export interface DoctorSummary { id: string; firstName: string; lastName: string; fullName?: string; serviceTitle?: string; specialty: string; city: string; location?: string; address?:string; nextAvailability?:string|null; photoUrl?:string|null; rating?: number; status: AccountStatus; videoConsultationEnabled?:boolean; }
+export interface DoctorPublicProfile extends Omit<DoctorSummary, 'status'> { description?:string; phone?:string|null; durationMinutes:number; workingDays:number[]; services:MedicalService[]; }
+export interface AvailabilityDay { date:string; status:'AVAILABLE'|'FULL'|'ABSENT'|'DAY_OFF'|'PAST'; availableSlots:number; }
+export interface BookingPolicy { timeZone:string; minDate:string; maxDate:string; minimumNoticeMinutes:number; }
 export interface TimeSlot { id: string; startsAt: string; endsAt: string; status: 'AVAILABLE' | 'BOOKED' | 'BLOCKED'; }
 export interface Appointment { id: string; startsAt: string; endsAt: string; status: AppointmentStatus; serviceName: string; servicePrice?: string; patientName?: string; doctorName?: string; location?: string; reason?: string; cancellationReason?: string; statusHistory?: { oldStatus?: AppointmentStatus; newStatus: AppointmentStatus; changedAt: string; actorName: string; reason?: string }[]; review?: ReviewRequest; consultationMode?:ConsultationMode; }
 export interface AppointmentRequest { expectedServicePrice?: string; doctorId: string; serviceName: string; startAt: string; reason?: string; consultationMode?:ConsultationMode; }

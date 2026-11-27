@@ -142,6 +142,52 @@ input::file-selector-button { padding: 10px; border-radius: 7px; border: 1px sol
 .portal-footer { font-size: 12px; color: var(--muted); padding-top: 24px; }
 .sidebar-backdrop, .sidebar-close { display: none; }
 
+.workspace-filters {
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.workspace-filters label { font-size: 13px; color: #405f54; font-weight: 650; }
+.workspace-filters input, .workspace-filters select { min-width: 0; }
+.workspace-loading {
+  display: grid;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.workspace-loading i {
+  height: 14px;
+  max-width: 34rem;
+  border-radius: 5px;
+  background: #e4efea;
+  animation: workspace-loading-pulse 1.4s ease-in-out infinite alternate;
+}
+.workspace-loading i:nth-of-type(2) { width: 75%; }
+.workspace-loading i:nth-of-type(3) { width: 50%; }
+@keyframes workspace-loading-pulse { to { opacity: .55; } }
+.doctor-portal .summary-grid article { padding: 16px 18px; gap: 4px; }
+.doctor-portal .summary-grid article:nth-child(4) { background: #ebf5ef; border-color: #ccdfd4; }
+.doctor-portal .dashboard-detail > article:only-child { grid-column: 1 / -1; }
+.doctor-portal .absence-confirmation { inset-inline: max(12px, calc((100vw - 720px) / 2)); }
+.doctor-portal .cabinet-onboarding { background: #edf6ef; padding: 18px; }
+.doctor-portal .onboarding-steps { margin-top: 12px; }
+.doctor-portal .onboarding-steps > a { padding: 10px; }
+.doctor-portal .onboarding-steps small { font-size: 12px; color: #4a6457; }
+.role-portal .summary-grid article { gap: 7px; padding: 18px; }
+.role-portal .sidebar .nav-icon { display: inline-flex; align-items: center; width: 20px; }
+.role-portal .page-heading > .button { font-size: 14px; }
+.role-portal .breadcrumbs { min-width: 0; }
+.role-portal .breadcrumbs strong { font-weight: 650; }
+.role-portal .breadcrumbs a:hover { text-decoration: underline; }
+
+@media (max-width: 760px) {
+  .role-portal .page-heading { flex-wrap: wrap; }
+  .role-portal .workspace-date { display: none; }
+}
+
 /* Agenda: a focused period, meaningful status colors, and one chronological list. */
 .agenda { background: white; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
 .agenda-toolbar { display: flex; align-items: center; gap: 12px; padding: 22px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }

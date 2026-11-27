@@ -1,0 +1,36 @@
+.dossier-history { display: grid; gap: 12px; }
+.dossier-visit { background: #fff; border: 1px solid #dbe8e1; border-radius: 16px; overflow: hidden; }
+.dossier-visit summary { display: grid; grid-template-columns: auto minmax(160px, 1fr) minmax(0, max-content) auto; align-items: center; gap: 14px; padding: 17px 20px; cursor: pointer; list-style: none; }
+.dossier-visit summary::-webkit-details-marker { display: none; }
+.dossier-visit summary:hover { background: #f5faf7; }
+.dossier-visit summary:focus-visible { outline-offset: -4px; }
+.dossier-symbol { width: 46px; height: 46px; display: inline-grid; place-items: center; border-radius: 12px; background: #e5f3ed; color: #187454; flex: none; }
+.dossier-empty .dossier-symbol { margin-bottom: 12px; }
+.dossier-empty .button { margin-top: 12px; }
+.visit-identity { display: grid; gap: 4px; overflow-wrap: anywhere; }
+.visit-identity strong { color: #173a30; font-size: 1rem; }
+.visit-identity time, .visit-identity > span, .visit-mode { color: #506b62; font-size: .84rem; }
+.visit-documents { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 7px; }
+.visit-mode { display: inline-flex; gap: 5px; align-items: center; }
+.visit-mode app-icon { width: 16px; height: 16px; }
+.visit-chevron { display: inline-block; color: #187454; font-size: 22px; line-height: 1; }
+.dossier-visit[open] .visit-chevron { transform: rotate(180deg); }
+.visit-content { border-top: 1px solid #e3ede7; padding: 18px 20px 22px; display: grid; gap: 14px; }
+.visit-content > * { margin: 0; }
+.visit-content h2 { margin: 0 0 10px; font-size: 1.1rem; }
+.visit-content h3 { font-size: .94rem; }
+.visit-content p { overflow-wrap: anywhere; }
+.dossier-loading { display: grid; gap: 10px; color: #506b62; }
+.dossier-loading div { min-height: 82px; border-radius: 16px; background: #e4eee8; animation: dossier-pulse 1.4s ease-in-out infinite alternate; }
+@keyframes dossier-pulse { to { opacity: .45; } }
+
+@media (max-width: 880px) {
+  .dossier-visit summary { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .visit-documents { grid-column: 2; grid-row: 2; justify-content: flex-start; }
+  .visit-chevron { grid-column: 3; grid-row: 1; }
+}
+@media (max-width: 480px) {
+  .dossier-visit summary, .visit-content { padding: 14px; }
+  .dossier-symbol { width: 36px; height: 36px; }
+}
+@media (prefers-reduced-motion: reduce) { .dossier-loading div { animation: none; } }

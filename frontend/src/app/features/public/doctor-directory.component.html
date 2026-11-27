@@ -1,0 +1,77 @@
+@if (!embedded()) { <app-public-directory-header /> }
+
+<section class="directory" [class.directory-public]="!embedded()" aria-labelledby="directory-title">
+  <header class="directory-heading">
+    <div class="directory-mark"><app-icon name="medecins" /></div>
+    <div>
+      <h1 id="directory-title">Trouver un médecin</h1>
+      <p>Explorez les profils et les créneaux disponibles pour votre prochaine consultation.</p>
+    </div>
+  </header>
+
+  <form class="directory-filters" [formGroup]="filters" (ngSubmit)="search()" aria-label="Filtres de recherche">
+    <label>Nom du médecin<input formControlName="q" type="search" placeholder="Nom ou cabinet" maxlength="100"></label>
+    <label>Spécialité<input formControlName="specialty" type="text" list="doctor-directory-specialties" placeholder="Toutes les spécialités" maxlength="120"></label>
+    <datalist id="doctor-directory-specialties">@for (specialty of specialties; track specialty.id) { <option [value]="specialty.name"></option> }</datalist>
+    <label>Ville<input formControlName="city" type="text" placeholder="Toutes les villes" maxlength="120"></label>
+    <label>Disponible le<input formControlName="availableOn" type="date" [min]="today"></label>
+    <div class="filter-actions">
+      <button class="button button-primary" type="submit">Rechercher</button>
+      <button class="reset-filters" type="button" (click)="reset()">Réinitialiser</button>
+    </div>
+  </form>
+
+  @if (loading) {
+    <p class="sr-only" role="status">Recherche des médecins en cours.</p>
+    <div class="directory-grid" aria-hidden="true">
+      @for (placeholder of [1, 2, 3, 4]; track placeholder) {
+        <div class="directory-skeleton"><span></span><span></span><span></span></div>
+      }
+    </div>
+  } @else if (error) {
+    <div class="notice notice-error" role="alert"><div>{{error}} <button type="button" class="retry-link" (click)="load(page)">Réessayer</button></div></div>
+  } @else if (!doctors.length) {
+    <div class="empty-panel">
+      <span class="empty-symbol"><app-icon name="medecins" /></span>
+      <h2>Aucun médecin trouvé</h2>
+      <p>Essayez une autre ville, une autre spécialité ou une date différente.</p>
+      <button type="button" class="button button-secondary" (click)="reset()">Effacer les filtres</button>
+    </div>
+  } @else {
+    <p class="directory-count" role="status">{{totalElements}} médecin{{totalElements === 1 ? '' : 's'}} trouvé{{totalElements === 1 ? '' : 's'}}</p>
+    <div class="directory-grid">
+      @for (doctor of doctors; track doctor.id) {
+        <article class="directory-card">
+          <header>
+            <app-avatar [url]="doctor.photoUrl" [name]="name(doctor)" [size]="50" />
+            <div><h2>{{name(doctor)}}</h2><p>{{doctor.specialty || 'Professionnel de santé'}}</p></div>
+          </header>
+          <p class="doctor-location">{{doctor.city || doctor.location || 'Localisation à préciser'}}</p>
+          <div class="directory-modes" aria-label="Modes de consultation">
+            <span>Cabinet</span>
+            @if (doctor.videoConsultationEnabled) { <span>Vidéo</span> }
+          </div>
+          <div class="directory-availability">
+            <app-icon name="disponibilites" />
+            <p><small>Prochain créneau</small><strong>{{doctor.nextAvailability ? (doctor.nextAvailability | cabinetDate:'datetime') : 'Aucun créneau disponible'}}</strong></p>
+          </div>
+          <div class="directory-actions">
+            <a class="button button-secondary" [routerLink]="[embedded() ? '/patient/medecins' : '/medecins', doctor.id]">Voir le profil</a>
+            @if (embedded()) {
+              <a class="button button-primary" [routerLink]="['/patient/reserver', doctor.id]">Prendre rendez-vous</a>
+            } @else {
+              <app-booking-prompt [doctorName]="name(doctor)" [selection]="{doctorId: doctor.id}" />
+            }
+          </div>
+        </article>
+      }
+    </div>
+    @if (totalPages > 1) {
+      <nav class="directory-pagination" aria-label="Pagination des médecins">
+        <button class="button button-secondary" type="button" [disabled]="page === 0" (click)="load(page - 1)">Précédent</button>
+        <span>Page {{page + 1}} sur {{totalPages}}</span>
+        <button class="button button-secondary" type="button" [disabled]="page + 1 >= totalPages" (click)="load(page + 1)">Suivant</button>
+      </nav>
+    }
+  }
+</section>

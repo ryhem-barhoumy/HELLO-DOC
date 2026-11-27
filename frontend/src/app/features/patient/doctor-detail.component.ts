@@ -1,21 +1,148 @@
-import { AvatarComponent } from '../../shared/avatar.component';
-import { WorkspaceFooterComponent } from '../../shared/workspace-footer.component';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { CabinetDatePipe } from '../../shared/cabinet-date.pipe';
-import { WorkspaceHeaderComponent } from '../../shared/workspace-header.component';
-import { Component, OnInit, DestroyRef, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { Subscription, forkJoin } from 'rxjs';
+import { AvailabilityDay, BookingPolicy, DoctorPublicProfile, TimeSlot } from '../../core/models/api.models';
 import { ApiService } from '../../core/services/api.service';
+import { AvatarComponent } from '../../shared/avatar.component';
+import { BookingPromptComponent } from '../../shared/booking-prompt.component';
+import { CabinetDatePipe } from '../../shared/cabinet-date.pipe';
+import { IconComponent } from '../../shared/icon.component';
+import { PublicDirectoryHeaderComponent } from '../public/public-directory-header.component';
 
-@Component({ selector:'app-doctor-detail', standalone:true, imports:[AvatarComponent,WorkspaceFooterComponent,WorkspaceHeaderComponent,CommonModule,RouterLink,CabinetDatePipe], template:`
-<main class="public-page"><app-workspace-header/><section class="detail-layout" *ngIf="doctor"><div class="doctor-photo has-profile-photo"><app-avatar [url]="doctor.photoUrl" [name]="doctor.fullName" [size]="180"></app-avatar></div><article class="detail-card"><span class="eyebrow">{{ doctor.specialty || 'PROFESSIONNEL DE SANTÉ' }}</span><h1>{{doctor.fullName || doctor.firstName+' '+doctor.lastName}}</h1><p class="doctor-practice-name" *ngIf="doctor.serviceTitle&&doctor.serviceTitle!==doctor.fullName">{{doctor.serviceTitle}}</p><p class="detail-description">{{ doctor.description || 'Découvrez les services proposés et les prochaines disponibilités.' }}</p><div class="doctor-facts"><div><small>Cabinet</small><b>{{ doctor.location || doctor.address || 'Adresse non renseignée' }}</b></div><div><small>Téléphone professionnel</small><b>{{ doctor.phone || 'Téléphone professionnel non renseigné' }}</b></div><div><small>Ville</small><b>{{ doctor.city || 'Ville non renseignée' }}</b></div><div><small>Durée de consultation</small><b>{{ doctor.duration || (doctor.durationMinutes ? doctor.durationMinutes+' minutes' : 'Selon le service') }}</b></div><div><small>Jours de consultation</small><b>{{ daysText }}</b></div><div><small>Prochaine disponibilité</small><b>{{ doctor.nextAvailability ? (doctor.nextAvailability|cabinetDate:'datetime') : 'Aucun créneau libre dans les 60 prochains jours' }}</b></div></div><h2>Disponibilités du mois</h2><div class="public-calendar"><header><button type="button" aria-label="Mois précédent" (click)="changeMonth(-1)">‹</button><b>{{monthLabel}}</b><button type="button" aria-label="Mois suivant" (click)="changeMonth(1)">›</button></header><p class="field-note" role="status" *ngIf="calendarLoading">Chargement des jours disponibles…</p><p class="notice notice-error" role="alert" *ngIf="calendarError">{{calendarError}} <button class="text-button" (click)="loadCalendar()">Réessayer</button></p><div class="public-calendar-grid" *ngIf="!calendarLoading&&!calendarError"><span *ngFor="let name of weekDays">{{name}}</span><i *ngFor="let blank of leadingDays"></i><a *ngFor="let day of calendarDays" [class.available]="day.status==='AVAILABLE'" [class.closed]="day.status!=='AVAILABLE'" [routerLink]="day.status==='AVAILABLE'?['/patient/reserver',doctorId]:null" [queryParams]="day.status==='AVAILABLE'?{date:day.date}:null" [attr.aria-disabled]="day.status!=='AVAILABLE'" [attr.aria-label]="(day.date|cabinetDate:'date')+' : '+(day.status==='AVAILABLE'?day.availableSlots+' créneaux disponibles':'indisponible')">{{day.date.slice(-2)}}<small *ngIf="day.status==='AVAILABLE'">{{day.availableSlots}} créneau{{day.availableSlots===1?'':'x'}}</small><small *ngIf="day.status!=='AVAILABLE'" aria-hidden="true">—</small></a></div><p class="calendar-legend">Choisissez un jour avec des créneaux libres. Le tiret indique un jour indisponible.</p></div><h2>Services et tarifs</h2><ul class="service-prices"><li *ngFor="let service of doctor.services"><span>{{ service.name }}</span><b>{{ service.price }}</b></li><li *ngIf="!doctor.services?.length"><span>Aucun service tarifé disponible.</span></li></ul><div class="notice notice-error" *ngIf="error">{{ error }}</div><a class="button button-primary" [routerLink]="['/patient/reserver',doctorId]">Choisir un service et un créneau <span>→</span></a></article></section><div class="loading-panel" *ngIf="loading"><span class="spinner"></span> Chargement du profil…</div><section class="empty-panel" *ngIf="!loading&&!doctor"><h2>Profil indisponible</h2><p>{{ error || 'Ce profil ne peut pas être affiché pour le moment.' }}</p><a routerLink="/patient/medecins" class="button button-secondary">Retour à la recherche</a></section></main><app-workspace-footer/>` })
+@Component({
+  selector: 'app-doctor-detail',
+  standalone: true,
+  imports: [AvatarComponent, RouterLink, CabinetDatePipe, BookingPromptComponent, PublicDirectoryHeaderComponent, IconComponent],
+  templateUrl: './doctor-detail.component.html',
+  styleUrl: './doctor-detail.component.css'
+})
 export class DoctorDetailComponent implements OnInit {
-  private destroy=inject(DestroyRef);private calendarRequest?:{unsubscribe():void};calendarLoading=false;calendarError='';
-  private route=inject(ActivatedRoute); private api=inject(ApiService); doctorId=this.route.snapshot.paramMap.get('doctorId')??''; doctor:any=null; error=''; loading=true;monthCursor=new Date(new Date().getFullYear(),new Date().getMonth(),1);calendarDays:any[]=[];weekDays=['L','M','M','J','V','S','D'];
-  get monthLabel(){return new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'}).format(this.monthCursor);}get leadingDays(){return Array.from({length:(this.monthCursor.getDay()+6)%7});}
-  get daysText(){ const names=['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi']; return (this.doctor?.workingDays??[]).map((d:number|string)=>names[Number(d)%7]).filter(Boolean).join(', ')||'À confirmer avec le médecin'; }
-  ngOnInit(){this.api.get<any>(`/doctors/${this.doctorId}`).subscribe({next:d=>{this.doctor=d;this.loading=false;this.loadCalendar();},error:e=>{this.error=e.message;this.loading=false;}});}
-  changeMonth(offset:number){this.monthCursor=new Date(this.monthCursor.getFullYear(),this.monthCursor.getMonth()+offset,1);this.loadCalendar();}
-  loadCalendar(){this.calendarRequest?.unsubscribe();this.calendarLoading=true;this.calendarError='';this.calendarDays=[];const month=`${this.monthCursor.getFullYear()}-${String(this.monthCursor.getMonth()+1).padStart(2,'0')}`;this.calendarRequest=this.api.get<any>(`/doctors/${this.doctorId}/availability-calendar`,{month}).pipe(takeUntilDestroyed(this.destroy)).subscribe({next:r=>{this.calendarDays=Array.isArray(r)?r:[];this.calendarLoading=false;},error:e=>{this.calendarLoading=false;this.calendarError=e.message||'Impossible de charger le calendrier des disponibilités.';}});}
+  private destroy = inject(DestroyRef);
+  private route = inject(ActivatedRoute);
+  private api = inject(ApiService);
+  private profileRequest?: Subscription;
+  private calendarRequest?: Subscription;
+  private slotsRequest?: Subscription;
+  readonly publicDirectory = this.route.snapshot.data['publicDirectory'] === true;
+  readonly backLink = this.publicDirectory ? '/medecins' : '/patient/medecins';
+  readonly weekDays = ['Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.', 'Dim.'];
+  doctorId = '';
+  doctor: DoctorPublicProfile | null = null;
+  policy: BookingPolicy | null = null;
+  loading = true;
+  error = '';
+  calendarLoading = false;
+  calendarError = '';
+  calendarDays: AvailabilityDay[] = [];
+  month = '';
+  selectedDate = '';
+  selectedSlot: TimeSlot | null = null;
+  slots: TimeSlot[] = [];
+  slotsLoading = false;
+  slotsError = '';
+
+  ngOnInit(): void {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroy)).subscribe(params => {
+      this.doctorId = params.get('doctorId') ?? '';
+      this.loadProfile();
+    });
+  }
+
+  get name(): string { return this.doctor?.fullName || `${this.doctor?.firstName ?? ''} ${this.doctor?.lastName ?? ''}`.trim(); }
+  get monthLabel(): string { return new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(this.monthDate()); }
+  get leadingDays(): number[] { return Array.from({ length: (this.monthDate().getDay() + 6) % 7 }, (_, index) => index); }
+  get bookable(): boolean { return this.doctor?.services.some(service => !!service.name?.trim() && !!service.price?.trim()) ?? false; }
+  get selectedDateParam(): string | undefined { return this.selectedDate || undefined; }
+
+  loadProfile(): void {
+    this.profileRequest?.unsubscribe();
+    this.calendarRequest?.unsubscribe();
+    this.clearSelection();
+    this.doctor = null;
+    this.policy = null;
+    this.loading = true;
+    this.error = '';
+    this.profileRequest = forkJoin({
+      doctor: this.api.get<DoctorPublicProfile>(`/doctors/${this.doctorId}`),
+      policy: this.api.get<BookingPolicy>(`/doctors/${this.doctorId}/booking-policy`)
+    }).pipe(takeUntilDestroyed(this.destroy)).subscribe({
+      next: ({ doctor, policy }) => {
+        this.doctor = doctor;
+        this.policy = policy;
+        this.month = policy.minDate.slice(0, 7);
+        this.loading = false;
+        this.loadCalendar();
+      },
+      error: () => {
+        this.error = 'Ce profil est indisponible pour le moment.';
+        this.loading = false;
+      }
+    });
+  }
+
+  changeMonth(offset: number): void {
+    const date = this.monthDate();
+    date.setMonth(date.getMonth() + offset);
+    const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    if (!this.policy || month < this.policy.minDate.slice(0, 7) || month > this.policy.maxDate.slice(0, 7)) return;
+    this.clearSelection();
+    this.month = month;
+    this.loadCalendar();
+  }
+
+  loadCalendar(): void {
+    this.calendarRequest?.unsubscribe();
+    this.calendarLoading = true;
+    this.calendarError = '';
+    this.calendarDays = [];
+    this.calendarRequest = this.api.get<AvailabilityDay[]>(`/doctors/${this.doctorId}/availability-calendar`, { month: this.month })
+      .pipe(takeUntilDestroyed(this.destroy)).subscribe({
+        next: days => { this.calendarDays = days; this.calendarLoading = false; },
+        error: () => {
+          this.calendarError = 'Impossible de charger le calendrier des disponibilités.';
+          this.calendarLoading = false;
+        }
+      });
+  }
+
+  dayAvailable(day: AvailabilityDay): boolean {
+    return day.status === 'AVAILABLE' && !!this.policy && day.date >= this.policy.minDate && day.date <= this.policy.maxDate;
+  }
+
+  chooseDate(day: AvailabilityDay): void {
+    if (!this.dayAvailable(day)) return;
+    this.selectedDate = day.date;
+    this.loadSlots();
+  }
+
+  loadSlots(): void {
+    this.slotsRequest?.unsubscribe();
+    this.selectedSlot = null;
+    this.slots = [];
+    this.slotsLoading = true;
+    this.slotsError = '';
+    this.slotsRequest = this.api.get<TimeSlot[]>(`/doctors/${this.doctorId}/slots`, { date: this.selectedDate })
+      .pipe(takeUntilDestroyed(this.destroy)).subscribe({
+        next: slots => {
+          this.slots = slots.filter(slot => slot.status === 'AVAILABLE');
+          this.slotsLoading = false;
+        },
+        error: () => {
+          this.slotsError = 'Impossible de charger les horaires disponibles.';
+          this.slotsLoading = false;
+        }
+      });
+  }
+
+  private clearSelection(): void {
+    this.slotsRequest?.unsubscribe();
+    this.selectedDate = '';
+    this.selectedSlot = null;
+    this.slots = [];
+    this.slotsLoading = false;
+    this.slotsError = '';
+  }
+
+  private monthDate(): Date { return new Date(`${this.month}-01T12:00:00`); }
 }

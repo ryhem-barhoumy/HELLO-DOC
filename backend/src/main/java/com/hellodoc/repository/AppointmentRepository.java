@@ -21,7 +21,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment,UUID> {
  Page<com.hellodoc.dto.DoctorPatientSummary> findCompletedPatients(@Param("doctorId") UUID doctorId,@Param("q") String q,Pageable pageable);
  long countByDoctorIdAndPatientIdAndStatus(UUID doctorId,UUID patientId,AppointmentStatus status);
  long countByPatientId(UUID patientId);
- @Query("select a from Appointment a join fetch a.doctor d join fetch d.user where a.patient.user.id=:patientUserId and a.status=com.hellodoc.entity.AppointmentStatus.COMPLETED order by a.startAt desc")
+ @Query("select distinct a from Appointment a join fetch a.doctor d join fetch d.user left join fetch d.specialties where a.patient.user.id=:patientUserId and a.status=com.hellodoc.entity.AppointmentStatus.COMPLETED order by a.startAt desc")
  List<Appointment> findPatientCompletedByUserId(@Param("patientUserId") UUID patientUserId);
  long countByDoctorId(UUID doctorId);
  long countByStatus(AppointmentStatus status);
@@ -30,8 +30,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment,UUID> {
  Page<Appointment> findOperational(@Param("status") AppointmentStatus status,@Param("from") Instant from,@Param("to") Instant to,@Param("q") String q,Pageable pageable);
  @Query("select a from Appointment a where a.doctor.id=:doctorId and a.patient.id=:patientId and a.status=com.hellodoc.entity.AppointmentStatus.COMPLETED order by a.startAt desc")
  Page<Appointment> findCompletedVisits(@Param("doctorId") UUID doctorId,@Param("patientId") UUID patientId,Pageable pageable);
- @Query("select a from Appointment a where lower(a.patient.user.email)=lower(:email) and ((:history=false and (a.status=com.hellodoc.entity.AppointmentStatus.TO_RESCHEDULE or (a.startAt>=:now and a.status in :active))) or (:history=true and a.status<>com.hellodoc.entity.AppointmentStatus.TO_RESCHEDULE and (a.startAt<:now or a.status in :finished))) order by a.startAt desc")
- Page<Appointment> findPatientAppointments(@Param("email") String email,@Param("history") boolean history,@Param("now") Instant now,@Param("active") List<AppointmentStatus> active,@Param("finished") List<AppointmentStatus> finished,Pageable pageable);
+ @Query("""
+     select a from Appointment a where lower(a.patient.user.email)=lower(:email)
+     and ((:history=false and (a.status=com.hellodoc.entity.AppointmentStatus.TO_RESCHEDULE or (a.startAt>=:now and a.status in :active)))
+       or (:history=true and a.status<>com.hellodoc.entity.AppointmentStatus.TO_RESCHEDULE and (a.startAt<:now or a.status in :finished)))
+     and (:status is null or a.status=:status)
+     and (:q is null or lower(concat(a.doctor.user.firstName,' ',a.doctor.user.lastName)) like :q escape '!'
+       or lower(a.serviceName) like :q escape '!' or lower(a.reason) like :q escape '!')
+     order by a.startAt desc, a.id desc
+     """)
+ Page<Appointment> findPatientAppointments(@Param("email") String email, @Param("history") boolean history,
+     @Param("now") Instant now, @Param("active") List<AppointmentStatus> active, @Param("finished") List<AppointmentStatus> finished,
+     @Param("status") AppointmentStatus status, @Param("q") String q, Pageable pageable);
  @Query("select a from Appointment a where lower(a.patient.user.email)=lower(:email) and a.startAt>=:now and a.status in :active order by a.startAt asc")
  List<Appointment> findNextPatientAppointments(@Param("email") String email,@Param("now") Instant now,@Param("active") List<AppointmentStatus> active,Pageable pageable);
  @Query("select a from Appointment a where a.doctor.id=:doctorId and (:from is null or a.startAt>=:from) and (:to is null or a.startAt<:to) order by a.startAt asc")

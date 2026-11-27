@@ -1,4 +1,3 @@
-import { WorkspaceFooterComponent } from '../../shared/workspace-footer.component';
 import { Component, DestroyRef, EventEmitter, HostListener, Input, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -7,12 +6,11 @@ import { catchError, forkJoin, of } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ApiService } from '../../core/services/api.service';
 import { Appointment, ConsultationNote } from '../../core/models/api.models';
-import { WorkspaceHeaderComponent } from '../../shared/workspace-header.component';
 import { CabinetDatePipe } from '../../shared/cabinet-date.pipe';
 
-@Component({selector:'app-consultation-note',standalone:true,imports:[WorkspaceFooterComponent,CommonModule,FormsModule,ReactiveFormsModule,RouterLink,WorkspaceHeaderComponent,CabinetDatePipe],styleUrl:'./consultation-note.component.css',template:`
-<app-workspace-header *ngIf="!embedded"/>
-<main class="product-page clinical-page" [class.embedded-clinical]="embedded">
+@Component({selector:'app-consultation-note',standalone:true,imports:[CommonModule,FormsModule,ReactiveFormsModule,RouterLink,CabinetDatePipe],styleUrl:'./consultation-note.component.css',template:`
+
+<section class="product-page clinical-page" [class.embedded-clinical]="embedded">
  <a class="text-link" *ngIf="!embedded" [routerLink]="['/medecin/rendez-vous',id]">← Retour au rendez-vous</a>
  <div class="page-intro"><span class="eyebrow">SUIVI DU PATIENT</span><h1>Fiche de consultation</h1><p class="muted">Consignez les éléments utiles au suivi. Cette fiche est réservée au médecin de la consultation.</p></div>
  <div class="loading-panel" role="status" *ngIf="loading">Chargement de la consultation…</div>
@@ -54,7 +52,7 @@ import { CabinetDatePipe } from '../../shared/cabinet-date.pipe';
   <article class="medical-note" *ngFor="let rx of prescriptions"><h3><button type="button" class="button button-primary" *ngIf="rx.status==='DRAFT'" [disabled]="!editable||busy" (click)="finalizePrescription(rx)">Finaliser cette prescription</button>Ordonnance du {{rx.prescribedAt|cabinetDate:'date'}} <span *ngIf="rx.amended">· version corrigée</span></h3><p *ngIf="rx.recommendations">{{rx.recommendations}}</p><ul><li *ngFor="let item of rx.items"><strong>{{item.medication}}</strong> — {{item.instructions}}</li></ul><button type="button" class="button button-secondary" [disabled]="!editable||busy" (click)="prepareAmendment(rx)">Corriger en créant une nouvelle version</button></article>
   <p class="empty-copy" *ngIf="!prescriptions.length">Aucune ordonnance créée pour cette consultation.</p></ng-container>
  </section></ng-container>
-</main><app-workspace-footer *ngIf="!embedded"/>`})
+</section>`})
 export class ConsultationNoteComponent {
  @Input() embedded=false;
  @Input() editable=true;

@@ -45,7 +45,20 @@ public class AppointmentService {
     }
 
     @Transactional(readOnly=true)
-    public PagedResponse<AppointmentDto> patientAppointments(String email,boolean historyView,int page,int size){patientUser(email);Page<Appointment> found=appointments.findPatientAppointments(email,historyView,Instant.now(),ACTIVE,FINISHED,PageRequest.of(safePage(page),safeSize(size)));return PagedResponse.from(found.map(this::dto));}
+    public PagedResponse<AppointmentDto> patientAppointments(String email,boolean historyView,int page,int size){
+        return patientAppointments(email, historyView, page, size, null, null);
+    }
+
+    @Transactional(readOnly=true)
+    public PagedResponse<AppointmentDto> patientAppointments(String email, boolean historyView, int page, int size,
+            AppointmentStatus status, String q) {
+        patientUser(email);
+        String pattern = q == null || q.isBlank() ? null : "%" + q.strip().toLowerCase(Locale.ROOT)
+            .replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%";
+        Page<Appointment> found = appointments.findPatientAppointments(email, historyView, Instant.now(), ACTIVE,
+            FINISHED, status, pattern, PageRequest.of(safePage(page), safeSize(size)));
+        return PagedResponse.from(found.map(this::dto));
+    }
 
     @Transactional(readOnly=true)
     public PagedResponse<AppointmentDto> doctorAppointments(String email,Instant from,Instant to,int page,int size){Doctor doctor=doctorProfiles.own(email);if(from!=null&&to!=null&&!to.isAfter(from))throw new ResponseStatusException(HttpStatus.BAD_REQUEST,"La fin de période doit suivre son début.");Page<Appointment> found=appointments.findDoctorAppointments(doctor.getId(),from,to,PageRequest.of(safePage(page),safeSize(size),Sort.by("startAt").ascending()));return PagedResponse.from(found.map(this::dto));}

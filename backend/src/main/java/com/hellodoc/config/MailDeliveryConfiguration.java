@@ -4,9 +4,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 @Configuration
 public class MailDeliveryConfiguration {
+    @Bean
+    ThreadPoolTaskExecutor passwordRecoveryExecutor() {
+        var executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(32);
+        executor.setThreadNamePrefix("password-recovery-mail-");
+        return executor;
+    }
+
     @Bean
     ApplicationRunner reportMailConfiguration(@Value("${hellodoc.email.enabled:false}") boolean enabled,
             @Value("${spring.mail.host:}") String host) {

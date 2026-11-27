@@ -11,5 +11,6 @@ import java.util.UUID;
 public class NotificationController {
  private final NotificationService notifications;public NotificationController(NotificationService notifications){this.notifications=notifications;}
  @GetMapping public PagedResponse<NotificationDto> list(Authentication auth,@RequestParam(defaultValue="0") int page,@RequestParam(defaultValue="50") int size){return notifications.list(auth.getName(),page,size);}
+ @GetMapping("/unread-count") public java.util.Map<String,Long> unreadCount(Authentication auth){return java.util.Map.of("count",notifications.unreadCount(auth.getName()));}
  @PatchMapping("/{id}/read") public NotificationDto markRead(Authentication auth,@PathVariable UUID id){return notifications.markRead(auth.getName(),id);}
 }

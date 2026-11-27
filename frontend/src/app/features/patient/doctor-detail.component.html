@@ -1,0 +1,82 @@
+@if (publicDirectory) { <app-public-directory-header /> }
+
+<section class="doctor-profile" [class.doctor-profile-public]="publicDirectory" aria-labelledby="profile-title">
+  <a class="profile-back" [routerLink]="backLink">← Retour aux médecins</a>
+  @if (loading) {
+    <div class="loading-panel" role="status"><span class="spinner" aria-hidden="true"></span> Chargement du profil…</div>
+  } @else if (doctor; as details) {
+    <header class="profile-heading" id="profile-title">
+      <app-avatar [url]="details.photoUrl" [name]="name" [size]="74" />
+      <div>
+        <h1>{{name}}</h1>
+        <p class="profile-specialty">{{details.specialty || 'Professionnel de santé'}}</p>
+        @if (details.serviceTitle && details.serviceTitle !== name) { <p>{{details.serviceTitle}}</p> }
+      </div>
+    </header>
+    <div class="profile-layout">
+      <div class="profile-about">
+        <article class="profile-panel">
+          <h2>À propos</h2>
+          @if (details.description) { <p>{{details.description}}</p> }
+          <dl class="profile-facts">
+            @if (details.location || details.address) { <div><dt>Cabinet</dt><dd>{{details.location || details.address}}</dd></div> }
+            @if (details.city) { <div><dt>Ville</dt><dd>{{details.city}}</dd></div> }
+            @if (!publicDirectory && details.phone) { <div><dt>Téléphone</dt><dd>{{details.phone}}</dd></div> }
+            @if (details.durationMinutes) { <div><dt>Durée habituelle</dt><dd>{{details.durationMinutes}} min</dd></div> }
+            <div><dt>Modes de consultation</dt><dd class="mode-list"><span>Cabinet</span>@if (details.videoConsultationEnabled) { <span>Vidéo</span> }</dd></div>
+          </dl>
+        </article>
+        <article class="profile-panel">
+          <h2>Services et tarifs</h2>
+          @if (details.services.length) {
+            <ul class="profile-prices">
+              @for (service of details.services; track $index) { <li><span>{{service.name}}</span><strong>{{service.price || 'Tarif à préciser'}}</strong></li> }
+            </ul>
+          } @else { <p>Aucun service tarifé publié pour le moment.</p> }
+        </article>
+      </div>
+      <article class="profile-panel profile-availability">
+        <h2>Disponibilités</h2>
+        <p class="next-availability"><app-icon name="disponibilites" /> {{details.nextAvailability ? 'Prochain créneau · ' + (details.nextAvailability | cabinetDate:'datetime') : 'Aucun créneau disponible'}}</p>
+        <div class="profile-calendar">
+          <header>
+            <button type="button" aria-label="Mois précédent" [disabled]="month === policy?.minDate?.slice(0, 7)" (click)="changeMonth(-1)">‹</button>
+            <strong>{{monthLabel}}</strong>
+            <button type="button" aria-label="Mois suivant" [disabled]="month === policy?.maxDate?.slice(0, 7)" (click)="changeMonth(1)">›</button>
+          </header>
+          @if (calendarLoading) { <p class="field-note" role="status">Chargement des disponibilités…</p> }
+          @else if (calendarError) { <p class="notice notice-error" role="alert">{{calendarError}} <button type="button" class="retry-link" (click)="loadCalendar()">Réessayer</button></p> }
+          @else {
+            <div class="profile-days" role="group" aria-label="Jours de consultation">
+              @for (day of weekDays; track day) { <span>{{day}}</span> }
+              @for (offset of leadingDays; track offset) { <span aria-hidden="true"></span> }
+              @for (day of calendarDays; track day.date) {
+                <button type="button" [disabled]="!dayAvailable(day)" [attr.aria-pressed]="selectedDate === day.date" [attr.aria-label]="(day.date | cabinetDate:'date') + (dayAvailable(day) ? ', ' + day.availableSlots + ' horaire(s) disponible(s)' : ', indisponible')" (click)="chooseDate(day)">{{day.date.slice(-2)}}</button>
+              }
+            </div>
+          }
+        </div>
+        @if (selectedDate) {
+          <h3>Horaires du {{selectedDate | cabinetDate:'date'}}</h3>
+          @if (slotsLoading) { <p class="field-note" role="status">Chargement des horaires…</p> }
+          @else if (slotsError) { <p class="notice notice-error" role="alert">{{slotsError}} <button type="button" class="retry-link" (click)="loadSlots()">Réessayer</button></p> }
+          @else if (!slots.length) { <p class="field-note" role="status">Aucun créneau libre ce jour. Choisissez une autre date.</p> }
+          @else {
+            <div class="profile-times" role="group" aria-label="Horaires de consultation">
+              @for (slot of slots; track slot.id) { <button type="button" [attr.aria-pressed]="selectedSlot?.id === slot.id" (click)="selectedSlot = slot">{{slot.startsAt | cabinetDate:'time'}}</button> }
+            </div>
+          }
+        } @else if (!calendarLoading && !calendarError && details.nextAvailability) { <p class="field-note">Sélectionnez un jour pour afficher les horaires du cabinet.</p> }
+        <div class="profile-booking-action">
+          @if (publicDirectory) {
+            <app-booking-prompt [doctorName]="name" [selection]="{doctorId, date: selectedDateParam, startAt: selectedSlot?.startsAt}" [disabled]="!bookable" />
+          } @else {
+            <a class="button button-primary" [routerLink]="['/patient/reserver', doctorId]" [queryParams]="{date: selectedDateParam, startAt: selectedSlot?.startsAt}">Prendre rendez-vous</a>
+          }
+        </div>
+      </article>
+    </div>
+  } @else {
+    <div class="empty-panel"><span class="empty-symbol"><app-icon name="medecins" /></span><h1 id="profile-title">Profil indisponible</h1><p>{{error}}</p><button class="button button-secondary" type="button" (click)="loadProfile()">Réessayer</button></div>
+  }
+</section>

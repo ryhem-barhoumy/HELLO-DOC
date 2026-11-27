@@ -1,5 +1,5 @@
-<app-workspace-header/>
-<main class="product-page appointment-page">
+<app-workspace-header *ngIf="role==='ADMIN'"/>
+<section class="product-page appointment-page" [attr.role]="role==='ADMIN' ? 'main' : null">
  <a class="text-link" [routerLink]="backLink">← Retour aux rendez-vous</a>
  <div class="page-intro"><span class="eyebrow">DÉTAILS DU RENDEZ-VOUS</span><h1>{{role==='DOCTOR'?'Votre consultation':role==='ADMIN'?'Suivi du rendez-vous':'Votre rendez-vous'}}</h1><p class="muted">Les horaires sont indiqués en heure locale du cabinet.</p></div>
  <p class="loading-panel" role="status" *ngIf="loading">Chargement du rendez-vous…</p>
@@ -31,6 +31,6 @@
   </article>
   <aside class="surface appointment-history" *ngIf="appointment.statusHistory?.length"><h2>Historique du rendez-vous</h2><ol class="event-timeline"><li *ngFor="let event of appointment.statusHistory"><strong>{{label(event.newStatus)}}</strong><time>{{event.changedAt|cabinetDate:'datetime'}}</time><span>{{event.actorName}}</span><p *ngIf="event.reason">{{event.reason}}</p></li></ol></aside>
  </div>
-</main>
+</section>
 
-<app-workspace-footer/>
+<app-workspace-footer *ngIf="role==='ADMIN'"/>

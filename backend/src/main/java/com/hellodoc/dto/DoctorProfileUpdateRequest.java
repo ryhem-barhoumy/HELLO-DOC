@@ -1,3 +1,6 @@
 package com.hellodoc.dto;
 import jakarta.validation.Valid; import jakarta.validation.constraints.*; import java.util.List;
-public record DoctorProfileUpdateRequest(@NotBlank @Size(max=100) String firstName,@NotBlank @Size(max=100) String lastName,@Pattern(regexp="(?:|[0-9]{8,15})",message="Le téléphone doit contenir entre 8 et 15 chiffres.") String phone,@NotBlank @Size(max=300) String address,@NotBlank @Size(max=160) String serviceTitle,@NotBlank @Size(max=120) String specialty,@NotBlank @Size(max=300) String location,@Size(max=2000) String description,@NotEmpty List<@Valid ServiceInput> services,@NotBlank String currentPassword) { public record ServiceInput(@NotBlank @Size(max=160) String name,@NotBlank @Size(max=40) String price){} }
+public record DoctorProfileUpdateRequest(@NotBlank @Size(max=100) String firstName,@NotBlank @Size(max=100) String lastName,@Pattern(regexp="(?:|[0-9]{8,15})",message="Le téléphone doit contenir entre 8 et 15 chiffres.") String phone,@NotBlank @Size(max=300) String address,@NotBlank @Size(max=160) String serviceTitle,@NotBlank @Size(max=120) String specialty,@NotBlank @Size(max=300) String location,@Size(max=2000) String description,@NotEmpty List<@Valid ServiceInput> services,@NotBlank String currentPassword) {
+    public record ServiceInput(@NotBlank @Size(max=160) String name, @NotBlank @Size(max=40) String price) { }
+    @Override public String toString() { return "DoctorProfileUpdateRequest[redacted]"; }
+}

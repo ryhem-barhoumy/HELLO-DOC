@@ -1,10 +1,14 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { PatientService, DoctorService } from '../../core/services/domain.services';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
+import { BookingIntentService } from '../../core/services/booking-intent.service';
 import { DigitsOnlyDirective } from '../../shared/digits-only.directive';
+import { LoginRequest } from '../../core/models/api.models';
 
 @Component({
   selector: 'app-registration', standalone: true,
@@ -17,6 +21,10 @@ export class RegistrationComponent implements OnInit {
   private patients = inject(PatientService);
   private doctors = inject(DoctorService);
   private api = inject(ApiService);
+  private auth = inject(AuthService);
+  private router = inject(Router);
+  private destroy = inject(DestroyRef);
+  private bookingIntent = inject(BookingIntentService);
   mode: 'patient' | 'doctor' = this.route.snapshot.data['mode'] === 'doctor' ? 'doctor' : 'patient';
   busy = false; error = ''; success = ''; specialties: string[] = [];
   specialtiesLoading = false; specialtiesError = ''; doctorDocument: File | null = null; documentError = '';
@@ -80,14 +88,37 @@ export class RegistrationComponent implements OnInit {
     const request = this.mode === 'doctor'
       ? this.doctors.register({...body, specialty: value.specialty, licenseNumber: value.licenseNumber.trim(), city: value.city.trim()}, this.doctorDocument!)
       : this.patients.register(body);
-    request.subscribe({
-      next: () => { this.busy = false; this.success = this.mode === 'doctor'
-        ? 'Votre demande a été envoyée. Après validation, vous pourrez vous connecter et configurer vos services, tarifs et horaires.'
-        : 'Votre compte est créé. Vous pouvez maintenant vous connecter.'; this.form.controls.password.reset(); this.form.controls.passwordConfirm.reset(); },
+    request.pipe(takeUntilDestroyed(this.destroy)).subscribe({
+      next: () => this.registrationComplete({ email: body.email, password: body.password }),
       error: e => { this.busy = false; this.error = e.message;
         for (const [name, message] of Object.entries(e.fieldErrors ?? {})) {
           const c = this.form.get(name); if (c) { c.setErrors({server: message}); c.markAsTouched(); }
         }
+      }
+    });
+  }
+
+  private registrationComplete(credentials: LoginRequest): void {
+    this.form.controls.password.reset();
+    this.form.controls.passwordConfirm.reset();
+    if (this.mode === 'doctor') {
+      this.busy = false;
+      this.success = 'Votre demande a été envoyée. Après validation, vous pourrez vous connecter et configurer vos services, tarifs et horaires.';
+      return;
+    }
+    if (!this.bookingIntent.pending) {
+      this.busy = false;
+      this.success = 'Votre compte est créé. Vous pouvez maintenant vous connecter.';
+      return;
+    }
+    this.auth.login(credentials).pipe(takeUntilDestroyed(this.destroy)).subscribe({
+      next: user => {
+        this.busy = false;
+        void this.router.navigateByUrl(this.bookingIntent.destination(user) ?? '/patient');
+      },
+      error: () => {
+        this.busy = false;
+        this.success = 'Votre compte est créé. Connectez-vous pour retrouver votre réservation.';
       }
     });
   }

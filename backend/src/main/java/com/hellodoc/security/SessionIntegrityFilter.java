@@ -19,9 +19,12 @@ public class SessionIntegrityFilter extends OncePerRequestFilter {
     @Override protected void doFilterInternal(HttpServletRequest request,HttpServletResponse response,FilterChain chain)throws ServletException,IOException{
         var authentication=SecurityContextHolder.getContext().getAuthentication();
         if(authentication!=null&&authentication.isAuthenticated()&&!(authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)){
-            boolean valid=users.findByEmailIgnoreCase(authentication.getName()).map(u->"ACTIVE".equals(u.getStatus())&&authentication.getAuthorities().stream().anyMatch(a->a.getAuthority().equals("ROLE_"+u.getRole().name()))).orElse(false);
+            var session=request.getSession(false);
+            boolean valid=users.findByEmailIgnoreCase(authentication.getName()).map(u->"ACTIVE".equals(u.getStatus())
+                    && AuthenticatedSession.matchesCredentials(session,u)
+                    && authentication.getAuthorities().stream().anyMatch(a->a.getAuthority().equals("ROLE_"+u.getRole().name()))).orElse(false);
             if(!valid){
-                SecurityContextHolder.clearContext();var session=request.getSession(false);if(session!=null)session.invalidate();
+                SecurityContextHolder.clearContext();if(session!=null)session.invalidate();
                 response.setStatus(401);response.setCharacterEncoding("UTF-8");response.setContentType("application/json");
                 mapper.writeValue(response.getOutputStream(),ApiError.of(401,"SESSION_REVOKED","Votre compte ou vos autorisations ont changé. Connectez-vous à nouveau.",Map.of()));return;
             }

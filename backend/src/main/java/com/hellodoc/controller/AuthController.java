@@ -7,6 +7,8 @@ import com.hellodoc.dto.RegistrationRequest;
 import com.hellodoc.dto.SessionUser;
 import com.hellodoc.entity.UserAccount;
 import com.hellodoc.repository.UserRepository;
+import com.hellodoc.security.AccountDetailsService;
+import com.hellodoc.security.AuthenticatedSession;
 import com.hellodoc.service.AccountService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,13 +23,13 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
+import java.util.Locale;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequestMapping("/api")
@@ -35,20 +37,29 @@ public class AuthController {
  private final AuthenticationManager authentication; private final UserRepository users; private final AccountService accounts; private final PasswordEncoder passwords;
  public AuthController(AuthenticationManager authentication,UserRepository users,AccountService accounts,PasswordEncoder passwords){this.authentication=authentication;this.users=users;this.accounts=accounts;this.passwords=passwords;}
  @GetMapping("/auth/csrf") public Map<String,String> csrf(CsrfToken token){return Map.of("headerName",token.getHeaderName(),"token",token.getToken());}
- @PostMapping("/auth/login") public SessionUser login(@Valid @RequestBody LoginRequest body,HttpServletRequest request){
+ @PostMapping("/auth/login") public SessionUser login(@Valid @RequestBody LoginRequest body,HttpServletRequest request,HttpServletResponse response){
   Authentication result;
-  try {result=authentication.authenticate(UsernamePasswordAuthenticationToken.unauthenticated(body.email().trim().toLowerCase(),body.password()));}
+  try {result=authentication.authenticate(UsernamePasswordAuthenticationToken.unauthenticated(body.email().trim().toLowerCase(Locale.ROOT),body.password()));}
   catch (LockedException e){throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN,"Doctor registration is awaiting administrator approval.");}
   catch (AuthenticationException e){throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED,"Invalid email or password.");}
-  request.getSession(true); request.changeSessionId(); SecurityContext context=SecurityContextHolder.createEmptyContext(); context.setAuthentication(result); SecurityContextHolder.setContext(context);
-  request.getSession(true).setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,context);
-  return current(result);
+  UserAccount user=account(result);
+  if(result.getPrincipal() instanceof AccountDetailsService.AccountPrincipal principal
+    && !principal.credentialVersion().equals(AuthenticatedSession.credentialVersion(user))){
+   throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED,"Invalid email or password.");
+  }
+  AuthenticatedSession.establish(request,response,result,user);
+  return SessionUser.from(user);
  }
  @GetMapping("/auth/me") public ResponseEntity<SessionUser> me(Authentication auth){return auth==null||!auth.isAuthenticated()||auth instanceof AnonymousAuthenticationToken?ResponseEntity.status(401).build():ResponseEntity.ok(current(auth));}
- @PostMapping("/auth/password") public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest body,Authentication auth){
-  UserAccount user=users.findByEmailIgnoreCase(auth.getName()).orElseThrow();
+ @PostMapping("/auth/password") public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest body,Authentication auth,HttpServletRequest request,HttpServletResponse response){
+  UserAccount user=account(auth);
+  if(body.newPassword().getBytes(StandardCharsets.UTF_8).length>72)throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,"Le nouveau mot de passe doit tenir dans 72 octets UTF-8.");
   if(!passwords.matches(body.currentPassword(),user.getPasswordHash()))throw new org.springframework.web.server.ResponseStatusException(HttpStatus.UNAUTHORIZED,"Current password is incorrect.");
-  user.changePassword(passwords.encode(body.newPassword())); users.save(user); return ResponseEntity.noContent().build();
+  String replacement=passwords.encode(body.newPassword());
+  if(users.replaceActivePassword(user.getId(),user.getPasswordHash(),replacement)!=1)throw new org.springframework.web.server.ResponseStatusException(HttpStatus.CONFLICT,"Le mot de passe a changé. Veuillez vous reconnecter.");
+  user.changePassword(replacement);
+  AuthenticatedSession.establish(request,response,auth,user);
+  return ResponseEntity.noContent().build();
  }
  @PostMapping("/auth/logout") public ResponseEntity<Void> logout(HttpServletRequest request,HttpServletResponse response){
   SecurityContextHolder.clearContext(); HttpSession session=request.getSession(false); if(session!=null)session.invalidate();
@@ -57,5 +68,6 @@ public class AuthController {
  @PostMapping("/patients/registrations") @ResponseStatus(HttpStatus.CREATED) public Map<String,Object> registerPatient(@Valid @RequestBody RegistrationRequest body){return registrationResult(accounts.register(body));}
  @PostMapping(value="/doctors/registrations",consumes=org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE) @ResponseStatus(HttpStatus.CREATED) public Map<String,Object> registerDoctor(@Valid @RequestPart("registration") DoctorRegistrationRequest body,org.springframework.web.multipart.MultipartHttpServletRequest multipart){var documents=multipart.getFiles("document");if(documents.size()!=1)throw new org.springframework.web.server.ResponseStatusException(HttpStatus.BAD_REQUEST,"Joignez exactement une attestation d’inscription à l’Ordre.");var application=accounts.registerDoctor(body,documents.get(0));return Map.of("id",application.getId(),"status",application.getStatus());}
  private Map<String,Object> registrationResult(UserAccount u){return Map.of("id",u.getId(),"status",u.getStatus());}
- private SessionUser current(Authentication auth){return SessionUser.from(users.findByEmailIgnoreCase(auth.getName()).orElseThrow());}
+ private SessionUser current(Authentication auth){return SessionUser.from(account(auth));}
+ private UserAccount account(Authentication auth){return users.findByEmailIgnoreCase(auth.getName()).orElseThrow();}
 }

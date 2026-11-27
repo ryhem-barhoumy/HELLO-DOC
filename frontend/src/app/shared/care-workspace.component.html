@@ -1,0 +1,59 @@
+<a class="skip-link" href="#care-content">Aller au contenu</a>
+<div class="care-workspace" [class.doctor-workspace]="doctor">
+  <header class="care-nav">
+    <div class="care-nav-inner">
+      <a class="brand" [routerLink]="base" (click)="menu = null" aria-label="HelloDoc, accueil de votre espace">
+        <span class="brand-mark" aria-hidden="true">+</span> hello<span>doc</span>
+      </a>
+      <nav class="care-links" id="care-navigation" aria-label="Navigation principale" [class.open]="menu === 'navigation'">
+        @for (link of links; track link.path) {
+          <a [routerLink]="link.path ? [base, link.path] : [base]" [class.active]="active === link.path"
+             [attr.aria-current]="section === link.path ? 'page' : null" (click)="menu = null">
+            <app-icon [name]="link.path"/><span>{{ link.label }}</span>
+          </a>
+        }
+      </nav>
+      <div class="care-actions">
+        <a class="care-bell" [class.active]="section === 'notifications'" [routerLink]="[base, 'notifications']" (click)="menu = null"
+           [attr.aria-current]="section === 'notifications' ? 'page' : null"
+           [attr.aria-label]="unread() === null ? 'Notifications' : 'Notifications, ' + unread() + ' non lues'">
+          <app-icon name="notifications"/><span class="care-bell-label" aria-hidden="true">Notifications</span>
+          @if (unread() !== null) { <span class="care-count" aria-hidden="true">{{ unread()! > 99 ? '99+' : unread() }}</span> }
+        </a>
+        <button class="care-icon-button care-hamburger" #navigationButton type="button" aria-label="Menu de navigation"
+                aria-controls="care-navigation" [attr.aria-expanded]="menu === 'navigation'" (click)="toggle('navigation')"><app-icon name="menu"/></button>
+        <div class="care-profile">
+          <button class="care-icon-button care-profile-trigger" #profileButton type="button" aria-label="Menu du compte"
+                  aria-controls="care-profile-menu" [attr.aria-expanded]="menu === 'profile'" (click)="toggle('profile')">
+            <app-avatar [url]="auth.user()?.photoUrl" [name]="name" [size]="32"/><span aria-hidden="true">⌄</span>
+          </button>
+          <div class="care-dropdown" id="care-profile-menu" [hidden]="menu !== 'profile'">
+            <strong>{{ name }}</strong>
+            <a [routerLink]="[base, 'profil']" [attr.aria-current]="section === 'profil' ? 'page' : null" (click)="menu = null"><app-icon name="profil"/>Mon compte</a>
+            <button type="button" [disabled]="busy" (click)="logout()"><app-icon name="logout"/>{{ busy ? 'Déconnexion…' : 'Déconnexion' }}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <app-teleconsultation-reminder/>
+  <main id="care-content" class="content-area care-content" tabindex="-1">
+    <div class="care-context">
+      <nav class="care-crumb" aria-label="Fil d’Ariane">
+        <a [routerLink]="base">{{ doctor ? 'Espace médecin' : 'Espace patient' }}</a><span aria-hidden="true">›</span>
+        @if (detail && detail !== label) { <a [routerLink]="[base, section]">{{ label }}</a><span aria-hidden="true">›</span> }
+        <strong aria-current="page">{{ detail || label }}</strong>
+      </nav>
+      @if (showPracticeLinks) {
+        <nav class="care-practice" aria-label="Activité du cabinet">
+          @for (link of practiceLinks; track link.path) {
+            <a [routerLink]="[base, link.path]" [attr.aria-current]="section === link.path ? 'page' : null"><app-icon [name]="link.path"/>{{ link.label }}</a>
+          }
+        </nav>
+      }
+    </div>
+    @if (error) { <p class="notice notice-error" role="alert">{{ error }}</p> }
+    <router-outlet/>
+  </main>
+  <app-workspace-footer/>
+</div>

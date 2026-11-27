@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { BookingIntentService } from '../../core/services/booking-intent.service';
 
 @Component({
   selector: 'app-login', standalone: true,
@@ -17,8 +18,9 @@ import { AuthService } from '../../core/services/auth.service';
 })
 export class LoginComponent {
   private fb=inject(FormBuilder); private auth=inject(AuthService); private router=inject(Router);
+  private bookingIntent=inject(BookingIntentService);
   expired=inject(ActivatedRoute).snapshot.queryParamMap.get('session')==='expired';
   passwordVisible=false; busy=false; error='';
   form=this.fb.group({email:['',[Validators.required,Validators.email,Validators.maxLength(254),Validators.pattern(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)]],password:['',[Validators.required,Validators.minLength(8)]]});
-  submit():void { if(this.busy)return;this.form.markAllAsTouched();this.error='';if(this.form.invalid)return;this.busy=true;const {email,password}=this.form.getRawValue();this.auth.login({email:email!,password:password!}).subscribe({next:user=>{this.busy=false;const target=user.role==='ADMIN'?'/admin/dashboard':user.role==='DOCTOR'?'/medecin':'/patient';void this.router.navigateByUrl(target);},error:e=>{this.busy=false;this.error=e.message??'Impossible de vous connecter. Vérifiez vos identifiants puis réessayez.';}}); }
+  submit():void { if(this.busy)return;this.form.markAllAsTouched();this.error='';if(this.form.invalid)return;this.busy=true;const {email,password}=this.form.getRawValue();this.auth.login({email:email!,password:password!}).subscribe({next:user=>{this.busy=false;const target=this.bookingIntent.destination(user)??(user.role==='ADMIN'?'/admin/dashboard':user.role==='DOCTOR'?'/medecin':'/patient');void this.router.navigateByUrl(target);},error:e=>{this.busy=false;this.error=e.message??'Impossible de vous connecter. Vérifiez vos identifiants puis réessayez.';}}); }
 }

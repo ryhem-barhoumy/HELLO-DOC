@@ -6,12 +6,28 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.*;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class AccountDetailsService implements UserDetailsService {
     private final UserRepository users;
     public AccountDetailsService(UserRepository users){this.users=users;}
     @Override public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         UserAccount u=users.findByEmailIgnoreCase(username.trim()).orElseThrow(()->new UsernameNotFoundException("Invalid credentials"));
-        return User.withUsername(u.getEmail()).password(u.getPasswordHash()).accountLocked("PENDING".equals(u.getStatus())).disabled("INACTIVE".equals(u.getStatus())||"REJECTED".equals(u.getStatus())).authorities(new SimpleGrantedAuthority("ROLE_"+u.getRole().name())).build();
+        return new AccountPrincipal(u);
+    }
+
+    public static final class AccountPrincipal extends User {
+        private final String credentialVersion;
+
+        private AccountPrincipal(UserAccount user) {
+            super(user.getEmail(), user.getPasswordHash(),
+                    !"INACTIVE".equals(user.getStatus()) && !"REJECTED".equals(user.getStatus()),
+                    true, true, !"PENDING".equals(user.getStatus()),
+                    List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
+            credentialVersion = AuthenticatedSession.credentialVersion(user);
+        }
+
+        public String credentialVersion() { return credentialVersion; }
     }
 }
